@@ -1,4 +1,4 @@
-# Vision for Underactuated Robot Manipulator
+# OpenCV Vision for an Underactuated Robot Manipulator
 
 This repository contains all the source code related to the computer-vision part of a academic research project for controlling an underactuated robot manipulator in years 2016 and 2017. The control algorithm of the robot is not provided is this repository.
 
@@ -14,7 +14,7 @@ And this is the another screenshot with image processing results:
 
 ![](images/old-program-screenshot-working.jpg)
 
-Further development of this project tries to add this features:
+Further development of this project will add this features:
 
 - Refactor the code and use .NET 5.0
 - Use a more flexible GUI framework like AvaloniaUI
