@@ -94,19 +94,41 @@ namespace LinkControl_C_Sharp
                 cmbPortName.Text = ports[ports.GetLength(0) - 1];
         }
 
-        private  void setPWM(double pwm)   // pwm must be between -1.0 and 1.0
+        long map(long x, long in_min, long in_max, long out_min, long out_max)
         {
-            if (pwm > 1.0f) pwm = 1.0f;
-            if (pwm < -1.0f) pwm = -1.0f;
+            return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+        }
 
-            int intSpeed = (int)(pwm * 255);
+        private void updateMotorSpeed(double speedA, double speedB)   // speeds must be normalized between -1.0 and 1.0
+        {
+            if (speedA > 1.0) speedA = 1.0;
+            if (speedA < -1.0) speedA = -1.0;
 
-            if (!serialPort1.IsOpen) serialPort1.Open();
+            if (speedB > 1.0) speedB = 1.0;
+            if (speedB < -1.0) speedB = -1.0;
 
-            byte[] cmdSpeed = { 0 };
-            cmdSpeed[0] = (byte)((intSpeed + 1) / 2 + 127);
-            serialPort1.Write(cmdSpeed, 0, 1);
-            serialPort1.Close();
+            int intSpeedA = (int)(speedA * 255);
+            int intSpeedB = (int)(speedB * 255);
+
+            if (!serialPort1.IsOpen)
+            {
+                try
+                {
+                    serialPort1.Open();
+
+                    byte[] cmdPacket = { 0xFF, 0, 0 };
+                    cmdPacket[1] = (byte)map(intSpeedA, -255, 255, 0, 254);
+                    cmdPacket[2] = (byte)map(intSpeedB, -255, 255, 0, 254);
+
+                    serialPort1.Write(cmdPacket, 0, 3);
+
+                    serialPort1.Close();
+                }
+                catch
+                {
+
+                }
+            }
         }
 
         // jointCount:
@@ -251,7 +273,7 @@ namespace LinkControl_C_Sharp
                 Image<Gray, byte> grayYellow = hsvImage.InRange(new Hsv(hueMin, saturationMin, valueMin), new Hsv(hueMax, saturationMax, valueMax));
 
             #endregion           
-
+            
             grayRed = grayRed.Erode(3);
             grayGreen = grayGreen.Erode(3);
             grayBlue = grayBlue.Erode(3);
@@ -440,7 +462,7 @@ namespace LinkControl_C_Sharp
                 isFirstFrame = true;
                 button1.Text = "Start";
                 groupBox1.Enabled = true;
-                setPWM(0);
+                updateMotorSpeed(0, 0);
                 timer1.Enabled = false;
             }
             else
@@ -461,7 +483,7 @@ namespace LinkControl_C_Sharp
                 {
                     MessageBox.Show("No Serial Port Name Selected");
                 }
-            }                     
+            }
         }
 
         private void controller()
@@ -518,7 +540,7 @@ namespace LinkControl_C_Sharp
                 drive = 100;
             }
 
-            setPWM(drive / 100.0); // send PWM command to motor board
+            updateMotorSpeed(drive / 100, 0);
             last = drive; // save current value for next time 
 
             error2 = error1;
@@ -553,11 +575,10 @@ namespace LinkControl_C_Sharp
 
                         pictureBox2.Image = BgrOrColors.ToBitmap();
 
-
                         # region Controller Code
 
                         //controller();
-                        setPWM(0.2);
+                        updateMotorSpeed(0.2, -0.2);
 
                         # endregion
                     }
@@ -572,7 +593,7 @@ namespace LinkControl_C_Sharp
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            setPWM(0);
+            updateMotorSpeed(0, 0);
         }
     }
 }
