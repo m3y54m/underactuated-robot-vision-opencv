@@ -16,6 +16,6 @@ And this is the another screenshot with image processing results:
 
 Further development of this project will add this features:
 
-- Refactor the code and use .NET 5.0
-- Use a more flexible GUI framework like AvaloniaUI
-- Write [OpenCV](https://opencv.org/) image processing code in C++ and call C++ function from C# (Instead of using wrappers of OpenCV for C# like EmguCV and OpenCvSharp)
+- Refactor the code and use Python
+- Use a more flexible GUI framework like [Kivy](https://kivy.org/)
+- Write [OpenCV](https://opencv.org/) image processing code in Python
