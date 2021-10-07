@@ -5,15 +5,66 @@ import tkinter as tk
 import serial
 from serial.tools import list_ports
 
-import time
+# Multi-threading
+import threading
 
-class RobotVision():
+
+class SerialPort:
+    def __init__(self):
+        self.isOpen = False
+        self.serialPortName = None
+        self.serialPortBaud = 921600
+
+    def set_name(self, serialPortName):
+        self.serialPortName = serialPortName
+
+    def open(self):
+        self.isOpen = True
+        self.serialPortThread = threading.Thread(target=self.thread_handler)
+        self.serialPortThread.start()
+
+    def close(self):
+        self.isOpen = False
+        self.serialPortThread.join()
+
+    def thread_handler(self):
+
+        serialPort = serial.Serial(
+            port=self.serialPortName,
+            baudrate=self.serialPortBaud,
+            bytesize=8,
+            timeout=2,
+            stopbits=serial.STOPBITS_ONE,
+        )
+
+        while self.isOpen:
+            # Wait until there is data waiting in the serial buffer
+            while serialPort.in_waiting > 0:
+                # Read only one byte from serial port
+                serialPortByte = serialPort.read(1)
+                # Print the received byte in Python terminal
+                try:
+                    serialPortByte.decode("ascii")
+                except UnicodeDecodeError:
+                    pass
+                else:
+                    print(serialPortByte.decode("Ascii"), end="")
+
+        serialPort.close()
+
+
+class RobotVision:
     def __init__(self):
 
         self.portNamesList = []
         self.isAnyPortAvailable = False
+        self.isStarted = False
+        self.serialPortName = None
+
+        self.serialPort = SerialPort()
+
         self.get_available_serial_ports()
-        
+
         self.window = tk.Tk()
         # Title of application window
         self.window.title("Robot Vision Application")
@@ -58,59 +109,76 @@ class RobotVision():
             text="Start processing",
             command=self.start_button_command,
         )
+        if self.isAnyPortAvailable == False:
+            self.startButton.configure(state="disabled")
         self.startButton.pack()
 
-        self.label = tk.Label(self.frame2, text="Blank")
-        self.label.pack()
+        self.greenJointLabel = tk.Label(self.frame2, text="Green join position")
+        self.greenJointLabel.pack()
+
+        self.blueJointLabel = tk.Label(self.frame2, text="Blue joint position")
+        self.blueJointLabel.pack()
+
+        self.redJointLabel = tk.Label(self.frame2, text="Red joint position")
+        self.redJointLabel.pack()
 
         # Blocking loop for GUI (Always put at the end)
         self.window.mainloop()
 
     def start_button_command(self):
-        self.label.configure(text=self.selectedPort.get())
+
+        if self.isStarted == False:
+            self.isStarted = True
+            self.startButton.configure(text="Stop processing")
+            self.serialPortName = self.selectedPort.get()
+            self.serialPort.set_name(self.serialPortName)
+            self.serialPort.open()
+        else:
+            self.isStarted = False
+            self.startButton.configure(text="Start processing")
+            self.serialPort.close()
 
     def scan_button_command(self):
-        self.get_available_serial_ports()
-        self.update_option_menu()
+        self.portNamesList = self.get_available_serial_ports()
+
+        if len(self.portNamesList) == 0:
+            self.isAnyPortAvailable = False
+            self.portNamesList = ["No ports available"]
+            self.portsOptionMenu.configure(state="disabled")
+            self.startButton.configure(state="disabled")
+        else:
+            self.isAnyPortAvailable = True
+            self.portsOptionMenu.configure(state="normal")
+            self.startButton.configure(state="normal")
+
+        self.update_option_menu(self.portNamesList)
 
     def get_available_serial_ports(self):
 
         # Clear portNames list
-        self.portNamesList = []
+        portNames = []
         # Get a list of available serial ports
         portsList = list_ports.comports()
         # Sort based on port names
         portsList = sorted(portsList)
 
         for port in portsList:
-            self.portNamesList.append(port.device)
+            portNames.append(port.device)
 
-        if len(self.portNamesList) == 0:
-            self.isAnyPortAvailable = False
-        else:
-            self.isAnyPortAvailable = True
+        return portNames
 
-    def update_option_menu(self):
-
-        if self.isAnyPortAvailable:
-            self.portsOptionMenu.configure(state="normal")
-        else:
-            self.portNamesList = ["No ports available"]
-            self.portsOptionMenu.configure(state="disabled")
-
+    def update_option_menu(self, portNames):
         # Remove old items
         self.portsOptionMenu["menu"].delete(0, "end")
         # Add new items
-        for portName in self.portNamesList:
+        for portName in portNames:
             self.portsOptionMenu["menu"].add_command(
                 label=portName, command=tk._setit(self.selectedPort, portName)
             )
         # Set default value of selectedPort
-        self.selectedPort.set(self.portNamesList[0])
+        self.selectedPort.set(portNames[0])
 
 
 if __name__ == "__main__":
     # Create the GUI
     gui = RobotVision()
-    
-
