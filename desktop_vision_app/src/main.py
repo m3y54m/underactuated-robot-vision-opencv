@@ -138,7 +138,6 @@ class RobotVision:
         # Blocking loop for GUI (Always put at the end)
         self.window.mainloop()
 
-
     def start_button_command(self):
 
         if self.isStarted == False:
@@ -195,7 +194,7 @@ class RobotVision:
     def close_window(self):
         if self.isStarted:
             self.serialPort.close()
-            self.window.destroy()
+        self.window.destroy()
 
 
 if __name__ == "__main__":
