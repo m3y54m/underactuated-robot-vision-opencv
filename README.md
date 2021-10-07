@@ -26,3 +26,4 @@ Further development of this project will add this features:
 
 - [Hello World in Tkinter](https://www.geeksforgeeks.org/hello-world-in-tkinter/)
 - [Change the Tkinter Label Text](https://www.delftstack.com/howto/python-tkinter/how-to-change-the-tkinter-label-text/)
+- [Tkinter Place](https://www.pythontutorial.net/tkinter/tkinter-place/)

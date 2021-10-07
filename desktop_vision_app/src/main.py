@@ -11,6 +11,12 @@ import threading
 # Path of files
 import pathlib
 
+# Working with images
+from PIL import Image, ImageTk
+
+# Image processing
+import cv2
+
 SRC_PATH = pathlib.Path(__file__).parent.resolve()
 ICON_PATH = SRC_PATH.joinpath("icon.png")
 
@@ -80,59 +86,116 @@ class RobotVision:
         self.window.title("Robot Vision Application")
         # Icon of application window
         self.window.iconphoto(False, tk.PhotoImage(file=ICON_PATH))
-        # Size of application window
-        self.window.geometry("500x500")
-        # Don't allow resizing in the x or y direction
-        self.window.resizable(False, False)
 
-        self.mainFrame = tk.Frame(self.window, bg="blue", padx=10, pady=10)
-        self.mainFrame.pack()
-
-        self.frame1 = tk.Frame(self.mainFrame, bg="white", padx=10, pady=10)
-        self.frame1.pack()
+        self.topFrame = tk.Frame(self.window)
 
         self.scanButton = tk.Button(
-            self.frame1,
+            self.topFrame,
             text="Scan serial ports",
             command=self.scan_button_command,
         )
-        self.scanButton.pack()
 
-        self.selectedPort = tk.StringVar(self.mainFrame)
+        self.selectedPort = tk.StringVar(self.topFrame)
         # Set default value of selectedPort
         if self.isAnyPortAvailable == False:
             self.portNamesList = ["No ports available"]
         self.selectedPort.set(self.portNamesList[0])
 
         self.portsOptionMenu = tk.OptionMenu(
-            self.frame1, self.selectedPort, *self.portNamesList
+            self.topFrame, self.selectedPort, *self.portNamesList
         )
 
         if self.isAnyPortAvailable == False:
             self.portsOptionMenu.configure(state="disabled")
 
-        self.portsOptionMenu.pack()
-
-        self.frame2 = tk.Frame(self.mainFrame, bg="yellow", padx=10, pady=10)
-        self.frame2.pack()
-
         self.startButton = tk.Button(
-            self.frame2,
+            self.topFrame,
             text="Start processing",
             command=self.start_button_command,
         )
         if self.isAnyPortAvailable == False:
             self.startButton.configure(state="disabled")
-        self.startButton.pack()
 
-        self.greenJointLabel = tk.Label(self.frame2, text="Green join position")
-        self.greenJointLabel.pack()
+        self.greenJointLabel = tk.Label(
+            self.topFrame, text="Green join position", anchor="w"
+        )
+        self.blueJointLabel = tk.Label(
+            self.topFrame, text="Blue joint position", anchor="w"
+        )
+        self.redJointLabel = tk.Label(
+            self.topFrame, text="Red joint position", anchor="w"
+        )
 
-        self.blueJointLabel = tk.Label(self.frame2, text="Blue joint position")
-        self.blueJointLabel.pack()
+        self.originalImageLabel = tk.Label(self.topFrame, bg="white")
+        self.processedImageLabel = tk.Label(self.topFrame, bg="white")
 
-        self.redJointLabel = tk.Label(self.frame2, text="Red joint position")
-        self.redJointLabel.pack()
+        ###############################
+        ## Widgets size and position ##
+        ###############################
+        padding = 10
+        image_width = 400
+        image_hight = 300
+        control_width = 300
+        button_height = 50
+        label_height = 30
+        menu_height = 40
+        window_width = image_width * 2 + control_width + 4 * padding
+        window_height = image_hight + 2 * padding
+
+        # Size of application window
+        self.window.geometry("{}x{}".format(window_width, window_height))
+        # Don't allow resizing in the x or y direction
+        self.window.resizable(False, False)
+
+        self.topFrame.place(x=0, y=0, width=window_width, height=window_height)
+
+        self.originalImageLabel.place(
+            x=padding, y=padding, width=image_width, height=image_hight
+        )
+        self.processedImageLabel.place(
+            x=(image_width + 2 * padding),
+            y=padding,
+            width=image_width,
+            height=image_hight,
+        )
+
+        self.scanButton.place(
+            x=(image_width * 2 + 3 * padding),
+            y=padding,
+            width=control_width,
+            height=button_height,
+        )
+        self.portsOptionMenu.place(
+            x=(image_width * 2 + 3 * padding),
+            y=(button_height + 2 * padding),
+            width=control_width,
+            height=menu_height,
+        )
+
+        self.startButton.place(
+            x=(image_width * 2 + 3 * padding),
+            y=(button_height + menu_height + 4 * padding),
+            width=control_width,
+            height=button_height,
+        )
+        self.greenJointLabel.place(
+            x=(image_width * 2 + 3 * padding),
+            y=(2 * button_height + menu_height + 5 * padding),
+            width=control_width,
+            height=label_height,
+        )
+        self.blueJointLabel.place(
+            x=image_width * 2 + 3 * padding,
+            y=(2 * button_height + menu_height + label_height + 6 * padding),
+            width=control_width,
+            height=label_height,
+        )
+        self.redJointLabel.place(
+            x=image_width * 2 + 3 * padding,
+            y=(2 * button_height + menu_height + 2 * label_height + 7 * padding),
+            width=control_width,
+            height=label_height,
+        )
 
         self.window.protocol("WM_DELETE_WINDOW", self.close_window)
         # Blocking loop for GUI (Always put at the end)
