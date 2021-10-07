@@ -5,32 +5,37 @@ import tkinter as tk
 import serial
 from serial.tools import list_ports
 
-class RobotVisionUI(object):
+import time
+
+class RobotVision():
     def __init__(self):
 
         self.portNamesList = []
         self.isAnyPortAvailable = False
-        self.scan_available_serial_ports()
-
-        self.root = tk.Tk()
+        self.get_available_serial_ports()
+        
+        self.window = tk.Tk()
         # Title of application window
-        self.root.title("Robot Vision Application")
+        self.window.title("Robot Vision Application")
         # Size of application window
-        self.root.geometry("500x500")
+        self.window.geometry("500x500")
         # Don't allow resizing in the x or y direction
-        self.root.resizable(False, False)
+        self.window.resizable(False, False)
 
-        self.frame1 = tk.Frame(self.root, bg="white", padx=10, pady=10)
+        self.mainFrame = tk.Frame(self.window, bg="blue", padx=10, pady=10)
+        self.mainFrame.pack()
+
+        self.frame1 = tk.Frame(self.mainFrame, bg="white", padx=10, pady=10)
         self.frame1.pack()
 
         self.scanButton = tk.Button(
             self.frame1,
             text="Scan serial ports",
-            command=self.scan_available_serial_ports,
+            command=self.scan_button_command,
         )
         self.scanButton.pack()
 
-        self.selectedPort = tk.StringVar(self.root)
+        self.selectedPort = tk.StringVar(self.mainFrame)
         # Set default value of selectedPort
         if self.isAnyPortAvailable == False:
             self.portNamesList = ["No ports available"]
@@ -45,33 +50,31 @@ class RobotVisionUI(object):
 
         self.portsOptionMenu.pack()
 
-        self.frame2 = tk.Frame(self.root, bg="yellow", padx=10, pady=10)
+        self.frame2 = tk.Frame(self.mainFrame, bg="yellow", padx=10, pady=10)
         self.frame2.pack()
 
         self.startButton = tk.Button(
             self.frame2,
             text="Start processing",
-            command=self.start_image_processing,
+            command=self.start_button_command,
         )
         self.startButton.pack()
 
         self.label = tk.Label(self.frame2, text="Blank")
         self.label.pack()
 
-        self.root.mainloop()
+        # Blocking loop for GUI (Always put at the end)
+        self.window.mainloop()
 
-    def start_image_processing(self):
+    def start_button_command(self):
         self.label.configure(text=self.selectedPort.get())
 
-    def option_menu_command(self, value):
-        self.label.configure(text=value)
-
     def scan_button_command(self):
-        self.scan_available_serial_ports()
+        self.get_available_serial_ports()
         self.update_option_menu()
 
-    def scan_available_serial_ports(self):
-        
+    def get_available_serial_ports(self):
+
         # Clear portNames list
         self.portNamesList = []
         # Get a list of available serial ports
@@ -108,7 +111,6 @@ class RobotVisionUI(object):
 
 if __name__ == "__main__":
     # Create the GUI
-    ui = RobotVisionUI()
-
-
+    gui = RobotVision()
+    
 
