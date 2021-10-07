@@ -1,16 +1,19 @@
 import tkinter as tk
 
+class RobotVisionUI():
+    def __init__(self):
+        self.root = tk.Tk()
 
-def update_label():
-    label.configure(text="Hello World!")
+        self.label = tk.Label(self.root, text="Blank")
+        self.label.pack()
 
+        self.button = tk.Button(self.root, text="Say Hello!", command=self.update_label)
+        self.button.pack()
 
-root = tk.Tk()
+        self.root.mainloop()
 
-label = tk.Label(root, text="Blank")
-label.pack()
+    def update_label(self):
+        self.label.configure(text="Hello World!")
 
-button = tk.Button(root, text="Say Hello!", command=update_label)
-button.pack()
-
-root.mainloop()
+if __name__ == "__main__":
+    ui = RobotVisionUI()
