@@ -1,4 +1,8 @@
+# GUI design
 import tkinter as tk
+# Communication with serial port
+import serial
+from serial.tools import list_ports
 
 
 class RobotVisionUI():
@@ -25,14 +29,14 @@ class RobotVisionUI():
         self.selectedPort = tk.StringVar(self.root)
         self.selectedPort.set(self.portsList[0])
         self.portsOptionMenu = tk.OptionMenu(
-            self.frame, self.selectedPort, *self.portsList,command=self.option_menu_command)
+            self.frame, self.selectedPort, *self.portsList, command=self.option_menu_command)
         self.portsOptionMenu.config(width=100)
         self.portsOptionMenu.pack()
 
         self.root.mainloop()
 
     def button_command(self):
-        self.label.configure(text="Hello Wolrd!")
+        self.label.configure(text="Hello World!")
 
     def option_menu_command(self, value):
         self.label.configure(text=value)
@@ -42,4 +46,11 @@ class RobotVisionUI():
 
 
 if __name__ == "__main__":
+
+    ports = list_ports.comports()
+    ports = sorted(ports)
+
+    for port, desc, hwid in ports:
+        print("{}: {} [{}]".format(port, desc, hwid))
+
     ui = RobotVisionUI()
