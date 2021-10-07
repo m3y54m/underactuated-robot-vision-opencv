@@ -8,6 +8,16 @@ from serial.tools import list_ports
 # Multi-threading
 import threading
 
+# Path of files
+import pathlib
+
+SRC_PATH = pathlib.Path(__file__).parent.resolve()
+ICON_PATH = SRC_PATH.joinpath("icon.png")
+
+
+class ImageProcessing:
+    pass
+
 
 class SerialPort:
     def __init__(self):
@@ -44,11 +54,11 @@ class SerialPort:
                 serialPortByte = serialPort.read(1)
                 # Print the received byte in Python terminal
                 try:
-                    serialPortByte.decode("ascii")
+                    character = serialPortByte.decode("ascii")
                 except UnicodeDecodeError:
                     pass
                 else:
-                    print(serialPortByte.decode("Ascii"), end="")
+                    print(character, end="")
 
         serialPort.close()
 
@@ -68,6 +78,8 @@ class RobotVision:
         self.window = tk.Tk()
         # Title of application window
         self.window.title("Robot Vision Application")
+        # Icon of application window
+        self.window.iconphoto(False, tk.PhotoImage(file=ICON_PATH))
         # Size of application window
         self.window.geometry("500x500")
         # Don't allow resizing in the x or y direction
