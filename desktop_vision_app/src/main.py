@@ -5,12 +5,12 @@ import tkinter as tk
 import serial
 from serial.tools import list_ports
 
-
 class RobotVisionUI(object):
     def __init__(self):
 
-        self.portNamesList = ["No ports available"]
+        self.portNamesList = []
         self.isAnyPortAvailable = False
+        self.scan_available_serial_ports()
 
         self.root = tk.Tk()
         # Title of application window
@@ -32,11 +32,17 @@ class RobotVisionUI(object):
 
         self.selectedPort = tk.StringVar(self.root)
         # Set default value of selectedPort
+        if self.isAnyPortAvailable == False:
+            self.portNamesList = ["No ports available"]
         self.selectedPort.set(self.portNamesList[0])
+
         self.portsOptionMenu = tk.OptionMenu(
             self.frame1, self.selectedPort, *self.portNamesList
         )
-        self.portsOptionMenu.configure(state="disabled")
+
+        if self.isAnyPortAvailable == False:
+            self.portsOptionMenu.configure(state="disabled")
+
         self.portsOptionMenu.pack()
 
         self.frame2 = tk.Frame(self.root, bg="yellow", padx=10, pady=10)
@@ -60,7 +66,12 @@ class RobotVisionUI(object):
     def option_menu_command(self, value):
         self.label.configure(text=value)
 
+    def scan_button_command(self):
+        self.scan_available_serial_ports()
+        self.update_option_menu()
+
     def scan_available_serial_ports(self):
+        
         # Clear portNames list
         self.portNamesList = []
         # Get a list of available serial ports
@@ -76,13 +87,10 @@ class RobotVisionUI(object):
         else:
             self.isAnyPortAvailable = True
 
-        # Update OptionMenu
-        self.update_option_menu()
-
     def update_option_menu(self):
 
         if self.isAnyPortAvailable:
-            self.portsOptionMenu.configure(state="active")
+            self.portsOptionMenu.configure(state="normal")
         else:
             self.portNamesList = ["No ports available"]
             self.portsOptionMenu.configure(state="disabled")
@@ -101,3 +109,6 @@ class RobotVisionUI(object):
 if __name__ == "__main__":
     # Create the GUI
     ui = RobotVisionUI()
+
+
+
