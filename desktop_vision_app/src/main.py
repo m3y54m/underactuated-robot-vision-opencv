@@ -134,8 +134,10 @@ class RobotVision:
         self.redJointLabel = tk.Label(self.frame2, text="Red joint position")
         self.redJointLabel.pack()
 
+        self.window.protocol("WM_DELETE_WINDOW", self.close_window)
         # Blocking loop for GUI (Always put at the end)
         self.window.mainloop()
+
 
     def start_button_command(self):
 
@@ -189,6 +191,11 @@ class RobotVision:
             )
         # Set default value of selectedPort
         self.selectedPort.set(portNames[0])
+
+    def close_window(self):
+        if self.isStarted:
+            self.serialPort.close()
+            self.window.destroy()
 
 
 if __name__ == "__main__":
