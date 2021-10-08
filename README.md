@@ -4,9 +4,9 @@ This repository contains all the source code related to the computer-vision part
 
 ![Our underactuated robot manipulator](images/underactuated-robot-manipulator.jpg)
 
-The v1, v2, and v3 versions of this project were written in Visual Studio using C# and [EmguCV](https://www.emgu.com/) and were hosted locally on my PC. Now I decided to put them in a GitHub repository in order to share it with other developers.
+The v1, v2, and v3 versions of this project were written in Visual Studio using C# and [EmguCV](https://www.emgu.com/) and were hosted locally on my PC. I decided to put them in a GitHub repository in order to share it with other developers.
 
-This is a screenshot of the UI of our vision-based control app in Windows, written in Visual Studio.
+This is a screenshot of the UI of old vision-based control app in Windows, written in Visual Studio.
 
 ![](images/old-program-ui.png)
 
@@ -14,10 +14,10 @@ And this is the another screenshot with image processing results:
 
 ![](images/old-program-screenshot-working.jpg)
 
-Further development of this project will add this features:
+Due to some limitations of C# and .NET for cross-platform application design and difficulties in using [OpenCV](https://opencv.org/) library I refactored the code and translated it to Python and used [Tkinter](https://docs.python.org/3/library/tkinter.html) for GUI design.
 
-- Refactor the code and write it in Python
-- Use a Python GUI framework like [Tkinter](https://docs.python.org/3/library/tkinter.html)
+Further development of this project will add this feature(s):
+
 - Write [OpenCV](https://opencv.org/) image processing code in Python
 
 ## Tutorials
