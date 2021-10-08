@@ -21,54 +21,6 @@ SRC_PATH = pathlib.Path(__file__).parent.resolve()
 ICON_PATH = SRC_PATH.joinpath("icon.png")
 
 
-class ImageProcessing:
-    pass
-
-
-class SerialPort:
-    def __init__(self):
-        self.isOpen = False
-        self.serialPortName = None
-        self.serialPortBaud = 921600
-
-    def set_name(self, serialPortName):
-        self.serialPortName = serialPortName
-
-    def open(self):
-        self.isOpen = True
-        self.serialPortThread = threading.Thread(target=self.thread_handler)
-        self.serialPortThread.start()
-
-    def close(self):
-        self.isOpen = False
-        self.serialPortThread.join()
-
-    def thread_handler(self):
-
-        serialPort = serial.Serial(
-            port=self.serialPortName,
-            baudrate=self.serialPortBaud,
-            bytesize=8,
-            timeout=2,
-            stopbits=serial.STOPBITS_ONE,
-        )
-
-        while self.isOpen:
-            # Wait until there is data waiting in the serial buffer
-            while serialPort.in_waiting > 0:
-                # Read only one byte from serial port
-                serialPortByte = serialPort.read(1)
-                # Print the received byte in Python terminal
-                try:
-                    character = serialPortByte.decode("ascii")
-                except UnicodeDecodeError:
-                    pass
-                else:
-                    print(character, end="")
-
-        serialPort.close()
-
-
 class RobotVision:
     def __init__(self):
 
@@ -77,7 +29,7 @@ class RobotVision:
         self.isStarted = False
         self.serialPortName = None
 
-        self.serialPort = SerialPort()
+        self.serialPortManager = SerialPortManager()
 
         self.get_available_serial_ports()
 
@@ -207,12 +159,12 @@ class RobotVision:
             self.isStarted = True
             self.startButton.configure(text="Stop processing")
             self.serialPortName = self.selectedPort.get()
-            self.serialPort.set_name(self.serialPortName)
-            self.serialPort.open()
+            self.serialPortManager.set_name(self.serialPortName)
+            self.serialPortManager.start()
         else:
             self.isStarted = False
             self.startButton.configure(text="Start processing")
-            self.serialPort.close()
+            self.serialPortManager.stop()
 
     def scan_button_command(self):
         self.portNamesList = self.get_available_serial_ports()
@@ -256,8 +208,57 @@ class RobotVision:
 
     def close_window(self):
         if self.isStarted:
-            self.serialPort.close()
+            self.serialPortManager.stop()
         self.window.destroy()
+
+
+class SerialPortManager:
+    def __init__(self):
+        self.isRunning = False
+        self.serialPortName = None
+        self.serialPortBaud = 921600
+
+    def set_name(self, serialPortName):
+        self.serialPortName = serialPortName
+
+    def start(self):
+        self.isRunning = True
+        self.serialPortThread = threading.Thread(target=self.thread_handler)
+        self.serialPortThread.start()
+
+    def stop(self):
+        self.isRunning = False
+        self.serialPortThread.join()
+
+    def thread_handler(self):
+
+        serialPort = serial.Serial(
+            port=self.serialPortName,
+            baudrate=self.serialPortBaud,
+            bytesize=8,
+            timeout=2,
+            stopbits=serial.STOPBITS_ONE,
+        )
+
+        while self.isRunning:
+            # Wait until there is data waiting in the serial buffer
+            while serialPort.in_waiting > 0:
+                # Read only one byte from serial port
+                serialPortByte = serialPort.read(1)
+                # Print the received byte in Python terminal
+                try:
+                    character = serialPortByte.decode("ascii")
+                except UnicodeDecodeError:
+                    pass
+                else:
+                    print(character, end="")
+
+        serialPort.close()
+
+
+class ImageProcessing:
+    def __init__(self):
+        self.isRunning = False
 
 
 if __name__ == "__main__":
