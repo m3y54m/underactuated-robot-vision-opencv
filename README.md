@@ -27,3 +27,9 @@ Further development of this project will add this feature(s):
 - [Hello World in Tkinter](https://www.geeksforgeeks.org/hello-world-in-tkinter/)
 - [Change the Tkinter Label Text](https://www.delftstack.com/howto/python-tkinter/how-to-change-the-tkinter-label-text/)
 - [Tkinter Place](https://www.pythontutorial.net/tkinter/tkinter-place/)
+
+### OpenCV + Tkinter
+
+- [How display multi videos with threading using tkinter in python?](https://stackoverflow.com/questions/65876044/how-display-multi-videos-with-threading-using-tkinter-in-python)
+- [Supercharge Your Classes With Python super()](https://realpython.com/python-super/)
+- [Refresh Tkinter Widgets using after()](https://www.geeksforgeeks.org/python-after-method-in-tkinter/)
