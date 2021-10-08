@@ -16,6 +16,14 @@ And this is the another screenshot with image processing results:
 
 Further development of this project will add this features:
 
-- Refactor the code and use Python
-- Use a more flexible GUI framework like [Kivy](https://kivy.org/)
+- Refactor the code and write it in Python
+- Use a Python GUI framework like [Tkinter](https://docs.python.org/3/library/tkinter.html)
 - Write [OpenCV](https://opencv.org/) image processing code in Python
+
+## Tutorials
+
+### Tkinter
+
+- [Hello World in Tkinter](https://www.geeksforgeeks.org/hello-world-in-tkinter/)
+- [Change the Tkinter Label Text](https://www.delftstack.com/howto/python-tkinter/how-to-change-the-tkinter-label-text/)
+- [Tkinter Place](https://www.pythontutorial.net/tkinter/tkinter-place/)
