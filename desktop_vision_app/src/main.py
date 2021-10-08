@@ -20,27 +20,31 @@ import cv2
 # for time.Sleep()
 import time
 
+PRJ_PATH = pathlib.Path(__file__).parent.resolve()
 SRC_PATH = pathlib.Path(__file__).parent.resolve()
 ICON_PATH = SRC_PATH.joinpath("icon.png")
+VDO_PATH = str(SRC_PATH.parent.resolve().joinpath("assets/sample_video.mp4"))
 
 
 class RobotVision:
     # GUI main class
-    def __init__(self):
+    def __init__(self, videoSource):
 
         self.portNamesList = []
         self.isAnyPortAvailable = False
         self.isStarted = False
         self.serialPortName = None
+        self.serialPortBaud = 921600
 
-        self.serialPortManager = SerialPortManager(921600)
+        self.serialPortManager = SerialPortManager(self.serialPortBaud)
         self.get_available_serial_ports()
 
         self.guiUpdateInterval = 40
         # Image processing interval might be less than GUI update interval
         self.imageProcessingInterval = 40
+        self.videoSource = videoSource
         self.imageProcessingManager = ImageProcessingManager(
-            self.imageProcessingInterval
+            self.videoSource, self.imageProcessingInterval
         )
 
         self.window = tk.Tk()
@@ -271,11 +275,11 @@ class RobotVision:
             self.serialPortName = self.selectedPort.get()
             # Start Serial Port Communication
             self.serialPortManager.set_name(self.serialPortName)
-            self.serialPortManager.set_baud(921600)
+            self.serialPortManager.set_baud(self.serialPortBaud)
             self.serialPortManager.start()
             # Start Image Processing
-            self.imageProcessingManager.set_source(0)
-            self.imageProcessingManager.set_interval(40)
+            self.imageProcessingManager.set_source(self.videoSource)
+            self.imageProcessingManager.set_interval(self.imageProcessingInterval)
             self.imageProcessingManager.start()
             # Start updating image boxes in GUI
             self.recursive_update_images()
@@ -431,9 +435,9 @@ class SerialPortManager:
 
 
 class ImageProcessingManager:
-    def __init__(self, interval=40):
+    def __init__(self, videoSource, interval=40):
         self.isRunning = False
-        self.videoSource = None
+        self.videoSource = videoSource
         self.interval = interval
         self.success = False
         self.originalFrame = None
@@ -518,5 +522,13 @@ class ImageProcessingManager:
 
 
 if __name__ == "__main__":
+
+    dict_video_source = {
+        "webcam": 0,
+        "file": VDO_PATH,
+        "url": "https://imageserver.webcamera.pl/rec/warszawa/latest.mp4",
+    }
+
+    videoSource = dict_video_source["url"]
     # Create the GUI
-    gui = RobotVision()
+    gui = RobotVision(videoSource)
