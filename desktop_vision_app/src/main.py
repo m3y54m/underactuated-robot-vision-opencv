@@ -33,11 +33,11 @@ class RobotVision:
         self.isStarted = False
         self.serialPortName = None
 
-        self.serialPortManager = SerialPortManager()
+        self.serialPortManager = SerialPortManager(921600)
         self.get_available_serial_ports()
 
         self.updateInterval = 40
-        self.imageProcessingManager = ImageProcessingManager(0, self.updateInterval)
+        self.imageProcessingManager = ImageProcessingManager(self.updateInterval)
 
         self.window = tk.Tk()
         # Title of application window
@@ -167,12 +167,19 @@ class RobotVision:
         if self.isStarted == False:
             self.isStarted = True
             self.startButton.configure(text="Stop processing")
+            # Get desired serial port name
             self.serialPortName = self.selectedPort.get()
+            # Start Serial Port Communication
             self.serialPortManager.set_name(self.serialPortName)
+            self.serialPortManager.set_baud(921600)
             self.serialPortManager.start()
+            # Start Image Processing
             self.imageProcessingManager.set_source(0)
+            self.imageProcessingManager.set_interval(40)
             self.imageProcessingManager.start()
+            # Start updating image boxes in GUI
             self.recursive_update_images()
+            
         else:
             self.isStarted = False
             self.startButton.configure(text="Start processing")
@@ -221,13 +228,17 @@ class RobotVision:
     def recursive_update_images(self):
         # Update images in a kind of recursive function using Tkinter after() method
         # Get PIL ImageTk types from ImageProcessingManager for displaying in GUI
-        success, self.originalTkImage,  self.processedTkImage = self.imageProcessingManager.get_tk_images()
-        
+        (
+            success,
+            self.originalTkImage,
+            self.processedTkImage,
+        ) = self.imageProcessingManager.get_tk_images()
+
         if success:
             # Update Labels used for displaying images
             self.originalImageBox.configure(image=self.originalTkImage)
             self.processedImageBox.configure(image=self.processedTkImage)
-            
+
         # Recursively call recursive_update_images using Tkinter after() method
         if self.imageProcessingManager.isRunning:
             self.window.after(self.updateInterval, self.recursive_update_images)
@@ -241,58 +252,69 @@ class RobotVision:
 
 class SerialPortManager:
     # A class for management of serial port data in a separate thread
-    def __init__(self):
+    def __init__(self, serialPortBaud=9600):
         self.isRunning = False
         self.serialPortName = None
-        self.serialPortBaud = 921600
+        self.serialPortBaud = serialPortBaud
+        self.serialPort = serial.Serial()
 
     def set_name(self, serialPortName):
         self.serialPortName = serialPortName
 
-    def start(self):
+    def set_baud(self, serialPortBaud):
+        self.serialPortBaud = serialPortBaud
 
+    def start(self):
         self.isRunning = True
         self.serialPortThread = threading.Thread(target=self.thread_handler)
         self.serialPortThread.start()
 
     def stop(self):
         self.isRunning = False
-        self.serialPortThread.join()
 
     def thread_handler(self):
 
-        serialPort = serial.Serial(
-            port=self.serialPortName,
-            baudrate=self.serialPortBaud,
-            bytesize=8,
-            timeout=2,
-            stopbits=serial.STOPBITS_ONE,
-        )
-
         while self.isRunning:
-            # Wait until there is data waiting in the serial buffer
-            while serialPort.in_waiting > 0:
-                # Read only one byte from serial port
-                serialPortByte = serialPort.read(1)
-                # Print the received byte in Python terminal
-                try:
-                    character = serialPortByte.decode("ascii")
-                except UnicodeDecodeError:
-                    pass
-                else:
-                    print(character, end="")
 
-        serialPort.close()
+            if not self.serialPort.isOpen():
+
+                self.serialPort = serial.Serial(
+                    port=self.serialPortName,
+                    baudrate=self.serialPortBaud,
+                    bytesize=8,
+                    timeout=2,
+                    stopbits=serial.STOPBITS_ONE,
+                )
+            else:
+                # Wait until there is data waiting in the serial buffer
+                while self.serialPort.in_waiting > 0:
+                    # Read only one byte from serial port
+                    serialPortByte = self.serialPort.read(1)
+                    # Process incoming bytes
+                    self.main_process(serialPortByte)
+
+        if self.serialPort.isOpen():
+            self.serialPort.close()
+
+    def __del__(self):
+        if self.serialPort.isOpen():
+            self.serialPort.close()
+
+    def main_process(self, inputByte):
+        # Print the received byte in Python terminal
+        try:
+            character = inputByte.decode("ascii")
+        except UnicodeDecodeError:
+            pass
+        else:
+            print(character, end="")
 
 
 class ImageProcessingManager:
-    def __init__(self, videoSource=0, updateInterval=40):
+    def __init__(self, updateInterval=40):
         self.isRunning = False
-        self.videoSource = videoSource
+        self.videoSource = None
         self.updateInterval = updateInterval
-        # Open the video source
-        self.videoCapture = cv2.VideoCapture(self.videoSource)
-
         self.success = False
         self.originalFrame = None
         self.processedFrame = None
@@ -300,9 +322,15 @@ class ImageProcessingManager:
         self.processedTkImage = None
         self.tkImageWidth = 400
         self.tkImageHeight = 300
+        # Open the video source
+        self.videoCapture = cv2.VideoCapture()
+        
 
     def set_source(self, videoSource):
         self.videoSource = videoSource
+
+    def set_interval(self, updateInterval):
+        self.updateInterval = updateInterval
 
     def get_frame(self):
         return self.success, self.originalFrame
@@ -317,9 +345,6 @@ class ImageProcessingManager:
 
     def stop(self):
         self.isRunning = False
-        if self.videoCapture.isOpened():
-            self.videoCapture.release()
-        self.videoCaptureThread.join()
 
     def convert_cv_frame_to_tk_image(self, frame):
         # In order to convert to PIL Image type should be first converted to RGB
@@ -328,30 +353,36 @@ class ImageProcessingManager:
         return ImageTk.PhotoImage(image=Image.fromarray(frame))
 
     def thread_handler(self):
-
-        self.videoCapture = cv2.VideoCapture(self.videoSource)
-
+        
         while self.isRunning:
-            if self.videoCapture.isOpened():
-
+            
+            if not self.videoCapture.isOpened():
+                self.videoCapture = cv2.VideoCapture(self.videoSource)
+            else:
                 self.success, self.originalFrame = self.videoCapture.read()
-
 
                 if self.success:
                     # In order to convert to PIL Image type should be first converted to RGB
                     self.frame = cv2.cvtColor(self.originalFrame, cv2.COLOR_BGR2RGB)
-                    self.frame = cv2.resize(self.frame, (self.tkImageWidth, self.tkImageHeight))
-                    self.originalTkImage = ImageTk.PhotoImage(image=Image.fromarray(self.frame))
+                    self.frame = cv2.resize(
+                        self.frame, (self.tkImageWidth, self.tkImageHeight)
+                    )
+                    self.originalTkImage = ImageTk.PhotoImage(
+                        image=Image.fromarray(self.frame)
+                    )
 
                     # Process the frame
                     self.processedFrame = self.main_process(self.originalFrame)
 
                     # In order to convert to PIL Image type should be first converted to RGB
                     self.frame = cv2.cvtColor(self.processedFrame, cv2.COLOR_GRAY2RGB)
-                    self.frame = cv2.resize(self.frame, (self.tkImageWidth, self.tkImageHeight))
-                    self.processedTkImage = ImageTk.PhotoImage(image=Image.fromarray(self.frame))
+                    self.frame = cv2.resize(
+                        self.frame, (self.tkImageWidth, self.tkImageHeight)
+                    )
+                    self.processedTkImage = ImageTk.PhotoImage(
+                        image=Image.fromarray(self.frame)
+                    )
                 else:
-                    print("[MyVideoCapture] stream end:", self.videoSource)
                     continue
 
                 time.sleep(self.updateInterval / 1000)
@@ -367,6 +398,7 @@ class ImageProcessingManager:
     def main_process(self, inputImage):
         outputImage = cv2.cvtColor(inputImage, cv2.COLOR_BGR2GRAY)
         return outputImage
+
 
 if __name__ == "__main__":
     # cap = ImageProcessingManager(0)
