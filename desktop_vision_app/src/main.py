@@ -47,7 +47,7 @@ class RobotVision:
             command=self.scan_button_command,
         )
 
-        self.selectedPort = tk.StringVar(self.topFrame)
+        self.selectedPort = tk.StringVar()
         # Set default value of selectedPort
         if self.isAnyPortAvailable == False:
             self.portNamesList = ["No ports available"]
