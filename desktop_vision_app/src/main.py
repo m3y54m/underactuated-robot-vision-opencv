@@ -36,8 +36,10 @@ class RobotVision:
         self.serialPortManager = SerialPortManager(921600)
         self.get_available_serial_ports()
 
-        self.updateInterval = 40
-        self.imageProcessingManager = ImageProcessingManager(self.updateInterval)
+        self.guiUpdateInterval = 40
+        # Image processing interval might be less than GUI update interval
+        self.imageProcessingInterval = 40
+        self.imageProcessingManager = ImageProcessingManager(self.imageProcessingInterval)
 
         self.window = tk.Tk()
         # Title of application window
@@ -241,7 +243,7 @@ class RobotVision:
 
         # Recursively call recursive_update_images using Tkinter after() method
         if self.imageProcessingManager.isRunning:
-            self.window.after(self.updateInterval, self.recursive_update_images)
+            self.window.after(self.guiUpdateInterval, self.recursive_update_images)
 
     def close_window(self):
         if self.isStarted:
@@ -311,10 +313,10 @@ class SerialPortManager:
 
 
 class ImageProcessingManager:
-    def __init__(self, updateInterval=40):
+    def __init__(self, interval=40):
         self.isRunning = False
         self.videoSource = None
-        self.updateInterval = updateInterval
+        self.interval = interval
         self.success = False
         self.originalFrame = None
         self.processedFrame = None
@@ -329,8 +331,8 @@ class ImageProcessingManager:
     def set_source(self, videoSource):
         self.videoSource = videoSource
 
-    def set_interval(self, updateInterval):
-        self.updateInterval = updateInterval
+    def set_interval(self, interval):
+        self.interval = interval
 
     def get_frame(self):
         return self.success, self.originalFrame
@@ -385,7 +387,7 @@ class ImageProcessingManager:
                 else:
                     continue
 
-                time.sleep(self.updateInterval / 1000)
+                time.sleep(self.interval / 1000)
 
         if self.videoCapture.isOpened():
             self.videoCapture.release()
