@@ -348,10 +348,15 @@ class ImageProcessingManager:
     def stop(self):
         self.isRunning = False
 
-    def convert_cv_frame_to_tk_image(self, frame):
+    def convert_cv_frame_to_tk_image(self, frame, isColored):
         # In order to convert to PIL Image type should be first converted to RGB
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if isColored:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        else:
+            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+        # Resize to fit the image box in GUI
         frame = cv2.resize(frame, (self.tkImageWidth, self.tkImageHeight))
+        # Return th ImageTk type suitable for Tkinter GUI
         return ImageTk.PhotoImage(image=Image.fromarray(frame))
 
     def thread_handler(self):
@@ -364,26 +369,14 @@ class ImageProcessingManager:
                 self.success, self.originalFrame = self.videoCapture.read()
 
                 if self.success:
-                    # In order to convert to PIL Image type should be first converted to RGB
-                    self.frame = cv2.cvtColor(self.originalFrame, cv2.COLOR_BGR2RGB)
-                    self.frame = cv2.resize(
-                        self.frame, (self.tkImageWidth, self.tkImageHeight)
-                    )
-                    self.originalTkImage = ImageTk.PhotoImage(
-                        image=Image.fromarray(self.frame)
-                    )
+                    # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
+                    self.originalTkImage = self.convert_cv_frame_to_tk_image(self.originalFrame, True)
 
                     # Process the frame
                     self.processedFrame = self.main_process(self.originalFrame)
 
-                    # In order to convert to PIL Image type should be first converted to RGB
-                    self.frame = cv2.cvtColor(self.processedFrame, cv2.COLOR_GRAY2RGB)
-                    self.frame = cv2.resize(
-                        self.frame, (self.tkImageWidth, self.tkImageHeight)
-                    )
-                    self.processedTkImage = ImageTk.PhotoImage(
-                        image=Image.fromarray(self.frame)
-                    )
+                    # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
+                    self.processedTkImage = self.convert_cv_frame_to_tk_image(self.processedFrame, False)
                 else:
                     continue
 
@@ -398,11 +391,11 @@ class ImageProcessingManager:
             self.videoCapture.release()
 
     def main_process(self, inputImage):
+        # Convert colored image to gray
         outputImage = cv2.cvtColor(inputImage, cv2.COLOR_BGR2GRAY)
         return outputImage
 
 
 if __name__ == "__main__":
-    # cap = ImageProcessingManager(0)
     # Create the GUI
     gui = RobotVision()
