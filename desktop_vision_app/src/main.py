@@ -18,6 +18,7 @@ from PIL import Image, ImageTk
 import cv2
 
 # for time.Sleep()
+# for scheduling functions using time.time()
 import time
 
 PRJ_PATH = pathlib.Path(__file__).parent.resolve()
@@ -26,9 +27,14 @@ ICON_PATH = SRC_PATH.joinpath("icon.png")
 VDO_PATH = str(SRC_PATH.parent.resolve().joinpath("assets/sample_video.mp4"))
 
 
+def time_ms():
+    # Get time in milliseconds
+    return int(time.time() * 1000)
+
+
 class RobotVision:
     # GUI main class
-    def __init__(self, videoSource):
+    def __init__(self, videoSource, videoFrameRate=25, guiUpdateInterval=40):
 
         self.portNamesList = []
         self.isAnyPortAvailable = False
@@ -39,9 +45,9 @@ class RobotVision:
         self.serialPortManager = SerialPortManager(self.serialPortBaud)
         self.get_available_serial_ports()
 
-        self.guiUpdateInterval = 40
+        self.guiUpdateInterval = guiUpdateInterval
         # Image processing interval might be less than GUI update interval
-        self.imageProcessingInterval = 40
+        self.imageProcessingInterval = 1000 // videoFrameRate
         self.videoSource = videoSource
         self.imageProcessingManager = ImageProcessingManager(
             self.videoSource, self.imageProcessingInterval
@@ -367,6 +373,31 @@ class RobotVision:
         if self.imageProcessingManager.isRunning:
             self.window.after(self.guiUpdateInterval, self.recursive_update_images)
 
+    def robot_set_motor_speed(self, speedA, speedB):
+        def map_number(x, in_min, in_max, out_min, out_max):
+            return int((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
+
+        # speeds must be normalized between -1.0 and 1.0
+        if speedA > 1.0:
+            speedA = 1.0
+        if speedA < -1.0:
+            speedA = -1.0
+
+        if speedB > 1.0:
+            speedB = 1.0
+        if speedB < -1.0:
+            speedB = -1.0
+
+        intSpeedA = int(speedA * 255)
+        intSpeedB = int(speedB * 255)
+
+        # Create a custom 3-byte packet with
+        cmdPacket = [0xFF, 0, 0]
+        cmdPacket[1] = map_number(intSpeedA, -255, 255, 0, 254)
+        cmdPacket[2] = map_number(intSpeedB, -255, 255, 0, 254)
+
+        return cmdPacket
+
     def close_window(self):
         if self.isStarted:
             self.serialPortManager.stop()
@@ -435,10 +466,10 @@ class SerialPortManager:
 
 
 class ImageProcessingManager:
-    def __init__(self, videoSource, interval=40):
+    def __init__(self, videoSource, intervalMilliseconds=40):
         self.isRunning = False
         self.videoSource = videoSource
-        self.interval = interval
+        self.intervalMilliseconds = intervalMilliseconds
         self.success = False
         self.originalFrame = None
         self.processedFrame = None
@@ -453,7 +484,7 @@ class ImageProcessingManager:
         self.videoSource = videoSource
 
     def set_interval(self, interval):
-        self.interval = interval
+        self.intervalMilliseconds = interval
 
     def get_frame(self):
         return self.success, self.originalFrame
@@ -487,25 +518,30 @@ class ImageProcessingManager:
             if not self.videoCapture.isOpened():
                 self.videoCapture = cv2.VideoCapture(self.videoSource)
             else:
-                self.success, self.originalFrame = self.videoCapture.read()
+                # Do processing on captured frame in certain intervals
+                if time_ms() % self.intervalMilliseconds == 0:
 
-                if self.success:
-                    # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
-                    self.originalTkImage = self.convert_cv_frame_to_tk_image(
-                        self.originalFrame, True
-                    )
+                    self.success, self.originalFrame = self.videoCapture.read()
 
-                    # Process the frame
-                    self.processedFrame = self.main_process(self.originalFrame)
+                    if self.success:
+                        # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
+                        self.originalTkImage = self.convert_cv_frame_to_tk_image(
+                            self.originalFrame, True
+                        )
 
-                    # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
-                    self.processedTkImage = self.convert_cv_frame_to_tk_image(
-                        self.processedFrame, False
-                    )
-                else:
-                    continue
+                        ##################################
+                        #  Main Image Processing Routine #
+                        ##################################
+                        isOutputColored, self.processedFrame = self.main_process(
+                            self.originalFrame
+                        )
 
-                time.sleep(self.interval / 1000)
+                        # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
+                        self.processedTkImage = self.convert_cv_frame_to_tk_image(
+                            self.processedFrame, isOutputColored
+                        )
+                    else:
+                        continue
 
         if self.videoCapture.isOpened():
             self.videoCapture.release()
@@ -516,19 +552,26 @@ class ImageProcessingManager:
             self.videoCapture.release()
 
     def main_process(self, inputImage):
+        # Set this to 'True' if the output image will be colored
+        isOutputColored = False
+
         # Convert colored image to gray
         outputImage = cv2.cvtColor(inputImage, cv2.COLOR_BGR2GRAY)
-        return outputImage
+
+        return isOutputColored, outputImage
 
 
 if __name__ == "__main__":
 
     dict_video_source = {
         "webcam": 0,
-        "file": VDO_PATH,
+        "video": VDO_PATH,
         "url": "https://imageserver.webcamera.pl/rec/warszawa/latest.mp4",
     }
 
-    videoSource = dict_video_source["url"]
+    videoSource = dict_video_source["video"]
+    videoFrameRate = 25
+    guiUpdateInterval = 40
+
     # Create the GUI
-    gui = RobotVision(videoSource)
+    gui = RobotVision(videoSource, videoFrameRate, guiUpdateInterval)
