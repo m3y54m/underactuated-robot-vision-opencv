@@ -45,3 +45,14 @@ pip install -r "./desktop_vision_app/requirements.txt"
 - [How display multi videos with threading using tkinter in python?](https://stackoverflow.com/questions/65876044/how-display-multi-videos-with-threading-using-tkinter-in-python)
 - [Supercharge Your Classes With Python super()](https://realpython.com/python-super/)
 - [Refresh Tkinter Widgets using after()](https://www.geeksforgeeks.org/python-after-method-in-tkinter/)
+
+### OpenCV
+
+- [Difference between HSV and HSV_FULL in opencv?](https://stackoverflow.com/questions/21782420/difference-between-hsv-and-hsv-full-in-opencv)
+- [How to detect two different colors using `cv2.inRange` in Python-OpenCV?](https://stackoverflow.com/questions/48109650/how-to-detect-two-different-colors-using-cv2-inrange-in-python-opencv)
+- [Performing Bitwise Operations on Images using OpenCV](https://medium.com/featurepreneur/performing-bitwise-operations-on-images-using-opencv-6fd5c3cd72a7)
+- [Morphological Transformations](https://opencv24-python-tutorials.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_morphological_ops/py_morphological_ops.html)
+- [How to Detect Contours in Images using OpenCV in Python](https://www.thepythoncode.com/article/contour-detection-opencv-python)
+- [Python OpenCV – Find center of contour](https://www.geeksforgeeks.org/python-opencv-find-center-of-contour/)
+- [Drawing shapes](https://opencv-tutorial.readthedocs.io/en/latest/draw/draw.html)
+- [Cropping an Image using OpenCV](https://learnopencv.com/cropping-an-image-using-opencv/)
