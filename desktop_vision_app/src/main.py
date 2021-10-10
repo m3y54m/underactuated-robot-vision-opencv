@@ -305,7 +305,7 @@ def robot_control_algorithm(greenPositionCm, bluePositionCm, redPositionCm):
     # Write the robot control algorithm here #
     ##########################################
     print(
-        "({}, {}), ({}, {}), ({}, {})".format(
+        "[  VISION ] Position of joints: ({}, {}), ({}, {}), ({}, {})".format(
             int(greenPositionCm.x),
             int(greenPositionCm.y),
             int(bluePositionCm.x),
@@ -345,9 +345,7 @@ class RobotVisionGUI:
         self.serialPortName = None
         self.serialPortBaud = serialPortBaud
         self.find_available_serial_ports()
-        # GUI update interval for images and other dynamic widgets
-        self.guiUpdateInterval = guiUpdateInterval
-        self.tkImageHeight = 250
+
         # Image processing interval might be less than GUI update interval
         self.imageProcessingInterval = 1000 // videoFrameRate
         self.videoSource = videoSource
@@ -356,8 +354,15 @@ class RobotVisionGUI:
             self.videoSource,
             self.videoAspectRatio,
             self.imageProcessingInterval,
-            self.tkImageHeight,
         )
+
+        # GUI update interval for images and other dynamic widgets
+        self.guiUpdateInterval = guiUpdateInterval
+        self.tkImageHeight = 250
+        self.tkImageWidth = int(self.tkImageHeight * self.videoAspectRatio)
+        self.originalTkImage = None
+        self.processedTkImage = None
+
         # Joint positions in centimeters
         self.greenJointPositionCm = Point(0, 0)
         self.blueJointPositionCm = Point(0, 0)
@@ -374,12 +379,12 @@ class RobotVisionGUI:
         self.scanButton = tk.Button(
             self.topFrame,
             text="Scan Serial Ports",
-            bg="#0051ff",
+            bg="#2667ff",
             fg="#ffffff",
             border=0,
             highlightbackground="#ffffff",
             highlightthickness=2,
-            activebackground="#1f7cff",
+            activebackground="#4076ff",
             activeforeground="#ffffff",
             font=("Sans", "10", "bold"),
             command=self.scan_button_command,
@@ -441,10 +446,10 @@ class RobotVisionGUI:
         self.blueJointLabel = tk.Label(
             self.topFrame,
             text="Blue Joint: ( N/A , N/A )",
-            highlightbackground="#0051ff",
+            highlightbackground="#2667ff",
             highlightthickness=2,
             bg="#ffffff",
-            fg="#0051ff",
+            fg="#2667ff",
             padx=5,
             font=("Sans", "9", "bold"),
             anchor="w",
@@ -494,8 +499,6 @@ class RobotVisionGUI:
             font=("Sans", "9", "bold"),
             anchor="nw",
         )
-
-        self.update_gui_loop()
 
         ###############################
         ## Widgets size and position ##
@@ -598,6 +601,7 @@ class RobotVisionGUI:
             self.imageProcessingManager.set_interval(self.imageProcessingInterval)
             self.imageProcessingManager.start()
             # Start updating image boxes in GUI
+            # time.sleep(0.5)
             self.update_gui_loop()
 
         else:
@@ -664,58 +668,82 @@ class RobotVisionGUI:
         # Set default value of selectedPort
         self.selectedPort.set(portNames[0])
 
+    def convert_cv_image_to_tk_image(self, frame, isColored):
+        # In order to convert to PIL Image type should be first converted to RGB
+        if isColored:
+            frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+        else:
+            frame = cv.cvtColor(frame, cv.COLOR_GRAY2RGB)
+        # Resize to fit the image box in GUI
+        frame = cv.resize(frame, (self.tkImageWidth, self.tkImageHeight))
+        # Return th ImageTk type suitable for Tkinter GUI
+        return ImageTk.PhotoImage(image=Image.fromarray(frame))
+
     def update_gui_loop(self):
         # Update images in a kind of recursive function using Tkinter after() method
         # Get PIL ImageTk types from ImageProcessingManager for displaying in GUI
         (
             success,
-            self.originalTkImage,
-            self.processedTkImage,
-        ) = self.imageProcessingManager.get_tk_images()
+            originalImage,
+            processedImage,
+        ) = self.imageProcessingManager.get_images()
 
         if success:
-            # Update Labels used for displaying images
-            self.originalImageBox.configure(image=self.originalTkImage)
-            self.processedImageBox.configure(image=self.processedTkImage)
 
-            (
-                self.greenJointPositionCm,
-                self.blueJointPositionCm,
-                self.redJointPositionCm,
-            ) = self.imageProcessingManager.get_joint_positions()
+            try:
+                # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
+                self.originalTkImage = self.convert_cv_image_to_tk_image(
+                    originalImage, True
+                )
+                self.processedTkImage = self.convert_cv_image_to_tk_image(
+                    processedImage, True
+                )
+                # Update Labels used for displaying images
+                self.originalImageBox.configure(image=self.originalTkImage)
+                self.processedImageBox.configure(image=self.processedTkImage)
 
-            greenString = "".join(
-                [
-                    "Green Joint: ( ",
-                    str(int(self.greenJointPositionCm.x)),
-                    " cm , ",
-                    str(int(self.greenJointPositionCm.y)),
-                    " cm )",
-                ]
-            )
+                (
+                    self.greenJointPositionCm,
+                    self.blueJointPositionCm,
+                    self.redJointPositionCm,
+                ) = self.imageProcessingManager.get_joint_positions()
 
-            blueString = "".join(
-                [
-                    "Blue Joint: ( ",
-                    str(int(self.blueJointPositionCm.x)),
-                    " cm , ",
-                    str(int(self.blueJointPositionCm.y)),
-                    " cm )",
-                ]
-            )
-            redString = "".join(
-                [
-                    "Red Joint: ( ",
-                    str(int(self.redJointPositionCm.x)),
-                    " cm , ",
-                    str(int(self.redJointPositionCm.y)),
-                    " cm )",
-                ]
-            )
+                greenString = "".join(
+                    [
+                        "Green Joint: ( ",
+                        str(int(self.greenJointPositionCm.x)),
+                        " cm , ",
+                        str(int(self.greenJointPositionCm.y)),
+                        " cm )",
+                    ]
+                )
 
-            self.greenJointLabel.configure(text=greenString)
-            self.blueJointLabel.configure(text=blueString)
-            self.redJointLabel.configure(text=redString)
+                blueString = "".join(
+                    [
+                        "Blue Joint: ( ",
+                        str(int(self.blueJointPositionCm.x)),
+                        " cm , ",
+                        str(int(self.blueJointPositionCm.y)),
+                        " cm )",
+                    ]
+                )
+                redString = "".join(
+                    [
+                        "Red Joint: ( ",
+                        str(int(self.redJointPositionCm.x)),
+                        " cm , ",
+                        str(int(self.redJointPositionCm.y)),
+                        " cm )",
+                    ]
+                )
+
+                self.greenJointLabel.configure(text=greenString)
+                self.blueJointLabel.configure(text=blueString)
+                self.redJointLabel.configure(text=redString)
+
+            except:
+                # ignore errors!
+                pass
 
         # Recursively call update_gui_loop using Tkinter after() method
         if self.imageProcessingManager.isRunning:
@@ -743,7 +771,7 @@ class SerialPortManager:
 
     def start(self):
         self.isRunning = True
-        self.serialPortThread = threading.Thread(target=self.thread_handler)
+        self.serialPortThread = threading.Thread(target=self.serial_thread_handler)
         self.serialPortThread.start()
 
     def stop(self):
@@ -751,11 +779,12 @@ class SerialPortManager:
         if self.serialPort.isOpen():
             self.serialPort.close()
 
-    def thread_handler(self):
+    def serial_thread_handler(self):
 
         while self.isRunning:
 
             if not self.serialPort.isOpen():
+
                 # Open the serial port
                 self.serialPort = serial.Serial(
                     port=self.serialPortName,
@@ -797,7 +826,6 @@ class ImageProcessingManager:
         videoSource,
         videoAspectRatio=1.0,
         intervalMilliseconds=40,
-        tkImageHeight=250,
     ):
 
         self.isRunning = False
@@ -805,12 +833,8 @@ class ImageProcessingManager:
         self.videoAspectRatio = videoAspectRatio
         self.intervalMilliseconds = intervalMilliseconds
         self.success = False
-        self.originalFrame = None
-        self.processedFrame = None
-        self.originalTkImage = None
-        self.processedTkImage = None
-        self.tkImageHeight = tkImageHeight
-        self.tkImageWidth = int(self.tkImageHeight * self.videoAspectRatio)
+        self.originalImage = None
+        self.processedImage = None
 
         # Joint positions in centimeters
         self.greenJointPositionCm = Point(0, 0)
@@ -846,11 +870,8 @@ class ImageProcessingManager:
             self.redJointPositionCm,
         )
 
-    def get_frame(self):
-        return self.success, self.originalFrame
-
-    def get_tk_images(self):
-        return self.success, self.originalTkImage, self.processedTkImage
+    def get_images(self):
+        return self.success, self.originalImage, self.processedImage
 
     def start(self):
         self.isRunning = True
@@ -859,59 +880,40 @@ class ImageProcessingManager:
         self.serialPortManager.set_baud(self.serialPortBaud)
         self.serialPortManager.start()
         # Start Video Capture Thread
-        self.videoCaptureThread = threading.Thread(target=self.thread_handler)
+        self.videoCaptureThread = threading.Thread(target=self.image_thread_handler)
         self.videoCaptureThread.start()
 
     def stop(self):
         self.isRunning = False
         self.serialPortManager.stop()
+        if self.videoCapture.isOpened():
+            self.videoCapture.release()
 
-    def convert_cv_frame_to_tk_image(self, frame, isColored):
-        # In order to convert to PIL Image type should be first converted to RGB
-        if isColored:
-            frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-        else:
-            frame = cv.cvtColor(frame, cv.COLOR_GRAY2RGB)
-        # Resize to fit the image box in GUI
-        frame = cv.resize(frame, (self.tkImageWidth, self.tkImageHeight))
-        # Return th ImageTk type suitable for Tkinter GUI
-        return ImageTk.PhotoImage(image=Image.fromarray(frame))
-
-    def thread_handler(self):
+    def image_thread_handler(self):
 
         while self.isRunning:
+
             # Do processing on captured frame in certain intervals
             if time_ms() % self.intervalMilliseconds == 0:
 
                 if not self.videoCapture.isOpened():
                     self.videoCapture = cv.VideoCapture(self.videoSource)
                 else:
-                    self.success, self.originalFrame = self.videoCapture.read()
+                    success, frame = self.videoCapture.read()
+
+                    self.success = success and frame.all != None
 
                     if self.success:
-
-                        # Correct aspect ratio of frame
-                        self.originalFrame = crop_image(
-                            self.originalFrame, self.videoAspectRatio
-                        )
-
-                        # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
-                        self.originalTkImage = self.convert_cv_frame_to_tk_image(
-                            self.originalFrame, True
-                        )
+                        # Correct aspect ratio of frame by cropping
+                        self.originalImage = crop_image(frame, self.videoAspectRatio)
 
                         ##################################
                         #  Main Image Processing Routine #
                         ##################################
-                        (
-                            isOutputColored,
-                            self.processedFrame,
-                        ) = self.main_image_processing(self.originalFrame)
-
-                        # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
-                        self.processedTkImage = self.convert_cv_frame_to_tk_image(
-                            self.processedFrame, isOutputColored
+                        self.processedImage = self.main_image_processing(
+                            self.originalImage
                         )
+
                     else:
                         continue
 
@@ -922,8 +924,6 @@ class ImageProcessingManager:
             self.videoCapture.release()
 
     def main_image_processing(self, inputImage):
-        # Set this to 'True' if the output image will be colored ELSE 'False'
-        isOutputColored = True
 
         success, greenCenter, blueCenter, redCenter, outputImage = find_join_positions(
             inputImage
@@ -959,7 +959,7 @@ class ImageProcessingManager:
             # Send speed of motors to Arduino board
             self.send_motor_speeds(self.motorSpeedA, self.motorSpeedB)
 
-        return isOutputColored, outputImage
+        return outputImage
 
     def send_motor_speeds(self, speedA, speedB):
         # speeds must be normalized and saturated between -1.0 and 1.0
@@ -983,24 +983,28 @@ class ImageProcessingManager:
         cmdPacket[2] = map_number(int(speedB * 255), -255, 255, 0, 254)
 
         # Send cmdPacket to serial port
-        if (
-            self.serialPortManager.serialPort.isOpen()
-            and self.serialPortManager.isRunning
-        ):
-            self.serialPortManager.serialPort.write(bytearray(cmdPacket))
+        try:
+            if (
+                self.serialPortManager.serialPort.isOpen()
+                and self.serialPortManager.isRunning
+            ):
+                self.serialPortManager.serialPort.write(bytearray(cmdPacket))
+        except:
+            # ignore errors
+            pass
 
 
 if __name__ == "__main__":
 
     dict_video_source = {
-        "webcam": 0,
+        "camera": 0,
         "video": VDO_PATH,
         "url": "https://imageserver.webcamera.pl/rec/warszawa/latest.mp4",
     }
 
     videoSource = dict_video_source["video"]
     videoFrameRate = 25
-    desiredAspectRatio = 1.2
+    desiredAspectRatio = 1.3
     serialPortBaud = 57600
     guiUpdateInterval = 40
 

@@ -105,7 +105,7 @@ void loop()
 {
   if (packetReceived)
   {
-    Serial.print("[ ARDUINO ] cmdSpeedA = ");
+    Serial.print("[ ARDUINO ] Received: cmdSpeedA = ");
     Serial.print(cmdSpeedA);
     Serial.print(" , cmdSpeedB = ");
     Serial.println(cmdSpeedB);
