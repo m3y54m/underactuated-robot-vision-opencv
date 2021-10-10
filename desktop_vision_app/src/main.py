@@ -242,7 +242,7 @@ def find_join_positions(inputImage):
             BGR_GREEN,
             -1,
         )
-    
+
     if blueCenterReady:
         # draw blue circle
         processedImage = cv.circle(
@@ -304,19 +304,37 @@ def set_motor_speed(speedA, speedB):
     return cmdPacket
 
 
+def robot_control_algorithm(greenPositionCm, bluePositionCm, redPositionCm):
+
+    motorSpeedA = 0
+    motorSpeedB = 0
+
+    ##########################################
+    # Write the robot control algorithm here #
+    ##########################################
+
+    return motorSpeedA, motorSpeedB
+
+
 class RobotVision:
     # GUI main class
-    def __init__(self, videoSource, videoFrameRate=25, videoAspectRatio=1.0, guiUpdateInterval=40):
-
+    def __init__(
+        self,
+        videoSource,
+        videoFrameRate=25,
+        videoAspectRatio=1.0,
+        serialPortBaud=9600,
+        guiUpdateInterval=40,
+    ):
+        # is 'Start' button clicked?
+        self.isStarted = False
+        # Serial port configuration
         self.portNamesList = []
         self.isAnyPortAvailable = False
-        self.isStarted = False
         self.serialPortName = None
-        self.serialPortBaud = 921600
-
-        self.serialPortManager = SerialPortManager(self.serialPortBaud)
-        self.get_available_serial_ports()
-
+        self.serialPortBaud = serialPortBaud
+        self.find_available_serial_ports()
+        # GUI update interval for images and other dynamic widgets
         self.guiUpdateInterval = guiUpdateInterval
         # Image processing interval might be less than GUI update interval
         self.imageProcessingInterval = 1000 // videoFrameRate
@@ -552,10 +570,10 @@ class RobotVision:
             )
             # Get desired serial port name
             self.serialPortName = self.selectedPort.get()
-            # Start Serial Port Communication
-            self.serialPortManager.set_name(self.serialPortName)
-            self.serialPortManager.set_baud(self.serialPortBaud)
-            self.serialPortManager.start()
+            # Send Serial Port configuration data to ImageProcessingManager
+            self.imageProcessingManager.config_serial_port(
+                self.serialPortName, self.serialPortBaud
+            )
             # Start Image Processing
             self.imageProcessingManager.set_source(self.videoSource)
             self.imageProcessingManager.set_interval(self.imageProcessingInterval)
@@ -571,11 +589,10 @@ class RobotVision:
                 activebackground="#3fcc69",
                 text="Start Processing",
             )
-            self.serialPortManager.stop()
             self.imageProcessingManager.stop()
 
     def scan_button_command(self):
-        self.portNamesList = self.get_available_serial_ports()
+        self.portNamesList = self.find_available_serial_ports()
 
         if len(self.portNamesList) == 0:
             self.isAnyPortAvailable = False
@@ -604,7 +621,7 @@ class RobotVision:
 
         self.update_option_menu(self.portNamesList)
 
-    def get_available_serial_ports(self):
+    def find_available_serial_ports(self):
         # Clear portNames list
         portNames = []
         # Get a list of available serial ports
@@ -687,7 +704,6 @@ class RobotVision:
 
     def close_window(self):
         if self.isStarted:
-            self.serialPortManager.stop()
             self.imageProcessingManager.stop()
         self.window.destroy()
 
@@ -715,7 +731,7 @@ class SerialPortManager:
         self.isRunning = False
 
     def thread_handler(self):
-
+        
         while self.isRunning:
 
             if not self.serialPort.isOpen():
@@ -744,17 +760,18 @@ class SerialPortManager:
 
     def serial_byte_processing(self, inputByte):
         # Print the received byte in Python terminal
-        # try:
-        #     character = inputByte.decode("ascii")
-        # except UnicodeDecodeError:
-        #     pass
-        # else:
-        #     print(character, end="")
+        try:
+            character = inputByte.decode("ascii")
+        except UnicodeDecodeError:
+            pass
+        else:
+            print(character, end="")
         pass
 
 
 class ImageProcessingManager:
-    def __init__(self, videoSource, videoAspectRatio=1.0,intervalMilliseconds=40):
+    def __init__(self, videoSource, videoAspectRatio=1.0, intervalMilliseconds=40):
+
         self.isRunning = False
         self.videoSource = videoSource
         self.videoAspectRatio = videoAspectRatio
@@ -767,9 +784,20 @@ class ImageProcessingManager:
         self.tkImageHeight = 300
         self.tkImageWidth = int(self.tkImageHeight * self.videoAspectRatio)
 
+        # Joint positions in centimeters
         self.greenJointPositionCm = (0, 0)
         self.blueJointPositionCm = (0, 0)
         self.redJointPositionCm = (0, 0)
+
+        # Motor speeds are float numbers in range (-1, 1)
+        # negative speed means reverse direction
+        self.motorSpeedA = 0
+        self.motorSpeedB = 0
+
+        self.serialPortName = None
+        self.serialPortBaud = 921600
+        self.serialPortManager = SerialPortManager(self.serialPortBaud)
+
         # Open the video source
         self.videoCapture = cv.VideoCapture()
 
@@ -778,6 +806,10 @@ class ImageProcessingManager:
 
     def set_interval(self, interval):
         self.intervalMilliseconds = interval
+
+    def config_serial_port(self, portName, baudRate):
+        self.serialPortName = portName
+        self.serialPortBaud = baudRate
 
     def get_joint_positions(self):
         return (
@@ -794,11 +826,17 @@ class ImageProcessingManager:
 
     def start(self):
         self.isRunning = True
+        # Start Serial Port Communication
+        self.serialPortManager.set_name(self.serialPortName)
+        self.serialPortManager.set_baud(self.serialPortBaud)
+        self.serialPortManager.start()
+        # Start Video Capture Thread
         self.videoCaptureThread = threading.Thread(target=self.thread_handler)
         self.videoCaptureThread.start()
 
     def stop(self):
         self.isRunning = False
+        self.serialPortManager.stop()
 
     def convert_cv_frame_to_tk_image(self, frame, isColored):
         # In order to convert to PIL Image type should be first converted to RGB
@@ -823,10 +861,12 @@ class ImageProcessingManager:
                     self.success, self.originalFrame = self.videoCapture.read()
 
                     if self.success:
-                        
+
                         # Correct aspect ratio of frame
-                        self.originalFrame = crop_image(self.originalFrame, self.videoAspectRatio)
-                        
+                        self.originalFrame = crop_image(
+                            self.originalFrame, self.videoAspectRatio
+                        )
+
                         # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
                         self.originalTkImage = self.convert_cv_frame_to_tk_image(
                             self.originalFrame, True
@@ -852,6 +892,7 @@ class ImageProcessingManager:
 
     # Release the video source when the object is destroyed
     def __del__(self):
+        self.serialPortManager.stop()
         if self.videoCapture.isOpened():
             self.videoCapture.release()
 
@@ -884,9 +925,12 @@ class ImageProcessingManager:
                 blueJoinPositionCmY,
             ), (redJoinPositionCmX, redJoinPositionCmY)
 
-            # controller()
-
-            set_motor_speed(0.2, -0.2)
+            # Give joint positions to the Robot Control Algorithm and get the motor speeds
+            self.motorSpeedA, self.motorSpeedA = robot_control_algorithm(
+                self.greenJointPositionCm,
+                self.blueJointPositionCm,
+                self.redJointPositionCm,
+            )
 
         return isOutputColored, outputImage
 
@@ -902,7 +946,14 @@ if __name__ == "__main__":
     videoSource = dict_video_source["video"]
     videoFrameRate = 25
     desiredAspectRatio = 1.2
+    serialPortBaud = 921600
     guiUpdateInterval = 40
 
     # Create the GUI
-    gui = RobotVision(videoSource,videoFrameRate, desiredAspectRatio, guiUpdateInterval)
+    gui = RobotVision(
+        videoSource,
+        videoFrameRate,
+        desiredAspectRatio,
+        serialPortBaud,
+        guiUpdateInterval,
+    )

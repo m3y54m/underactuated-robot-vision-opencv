@@ -1,7 +1,7 @@
 /*  Underactuated Robot Manipulator Control
 
-    This program receives a command packet by serial port
-    and send appropriate command to L298 motor driver IC
+    This program receives a command packet from serial port
+    and sends appropriate signals to L298 DC motor driver IC
 
     1395/02/29
 

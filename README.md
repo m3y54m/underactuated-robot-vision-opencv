@@ -1,10 +1,10 @@
 # OpenCV Vision for an Underactuated Robot Manipulator
 
-This repository contains all the source code related to the computer-vision part of a academic research project for controlling an underactuated robot manipulator in years 2016 and 2017. The control algorithm of the robot is not provided is this repository.
+This repository contains all the source code related to the computer-vision part of an academic research project for controlling an underactuated robot manipulator done in years 2016 and 2017. The control algorithm of the robot is not provided is this repository.
 
 ![Our underactuated robot manipulator](images/underactuated-robot-manipulator.jpg)
 
-This is a screenshot of the GUI of latest version in Linux, written in Python using [Tkinter](https://docs.python.org/3/library/tkinter.html) and [OpenCV](https://opencv.org/):
+This is a screenshot of the GUI of the latest version in Linux, written in Python using [Tkinter](https://docs.python.org/3/library/tkinter.html) and [OpenCV](https://opencv.org/):
 
 ![](images/new-program-ui.png)
 
@@ -18,8 +18,7 @@ This is a screenshot of the GUI of old vision-based control app in Windows, writ
 
 ## Current Development
 
-Due to some limitations of C# and .NET for cross-platform application design and difficulties in using [OpenCV](https://opencv.org/) library I refactored the code and translated it to Python and used [Tkinter](https://docs.python.org/3/library/tkinter.html) for GUI design.
-
+Due to some limitations of C# and .NET for cross-platform application design and difficulties in using [OpenCV](https://opencv.org/) I refactored the code and translated it into Python and used [Tkinter](https://docs.python.org/3/library/tkinter.html) for GUI design.
 
 
 ## Install dependencies
