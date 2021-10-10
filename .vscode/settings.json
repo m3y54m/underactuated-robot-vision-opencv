@@ -1,4 +1,11 @@
 {
     "python.formatting.provider": "black",
-    "editor.minimap.enabled": false
+    "editor.minimap.enabled": false,
+    "cSpell.words": [
+        "dtype",
+        "padx",
+        "pady",
+        "RETR",
+        "setit"
+    ]
 }

@@ -56,4 +56,5 @@ pip install -r "./desktop_vision_app/requirements.txt"
 
 ### Misc
 
--[What is the Python equivalent of static variables inside a function?](https://stackoverflow.com/questions/279561/what-is-the-python-equivalent-of-static-variables-inside-a-function)
+- [What is the Python equivalent of static variables inside a function?](https://stackoverflow.com/questions/279561/what-is-the-python-equivalent-of-static-variables-inside-a-function)
+- [Digital Low Pass Filter Code Generator](http://www.schwietering.com/jayduino/filtuino/)

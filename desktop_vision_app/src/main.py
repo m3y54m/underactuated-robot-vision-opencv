@@ -62,6 +62,12 @@ CALIBRATED_HSV_BLUE = Hsv(113, 189, 115)
 CALIBRATED_HSV_GREEN = Hsv(55, 157, 135)
 
 
+class Point:
+    def __init__(self, x=0, y=0):
+        self.x = x
+        self.y = y
+
+
 def time_ms():
     # Get time in milliseconds
     return int(time.time() * 1000)
@@ -177,7 +183,7 @@ def filter_color(hsvImage, colorNameToFilter):
 def find_center(filteredImage):
 
     success = False
-    center = (0, 0)
+    center = Point(0, 0)
 
     contours, hierarchy = cv.findContours(
         filteredImage, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE
@@ -197,7 +203,7 @@ def find_center(filteredImage):
             if (contourArea > MIN_CONTOUR_AREA) and (contourArea < MAX_CONTOUR_AREA):
 
                 success = True
-                center = (x, y)
+                center = Point(x, y)
 
     return success, center
 
@@ -206,9 +212,9 @@ def find_join_positions(inputImage):
 
     success = False
 
-    greenCenter = (0, 0)
-    blueCenter = (0, 0)
-    redCenter = (0, 0)
+    greenCenter = Point(0, 0)
+    blueCenter = Point(0, 0)
+    redCenter = Point(0, 0)
 
     greenCenterReady = False
     blueCenterReady = False
@@ -237,7 +243,7 @@ def find_join_positions(inputImage):
         # draw green circle
         processedImage = cv.circle(
             processedImage,
-            greenCenter,
+            (greenCenter.x, greenCenter.y),
             int(MAX_DIAMETER_CM * PIXEL_TO_CM_RATIO / 2),
             BGR_GREEN,
             -1,
@@ -247,7 +253,7 @@ def find_join_positions(inputImage):
         # draw blue circle
         processedImage = cv.circle(
             processedImage,
-            blueCenter,
+            (blueCenter.x, blueCenter.y),
             int(MAX_DIAMETER_CM * PIXEL_TO_CM_RATIO / 2),
             BGR_BLUE,
             -1,
@@ -257,17 +263,31 @@ def find_join_positions(inputImage):
         # draw red circle
         processedImage = cv.circle(
             processedImage,
-            redCenter,
+            (redCenter.x, redCenter.y),
             int(MAX_DIAMETER_CM * PIXEL_TO_CM_RATIO / 2),
             BGR_RED,
             -1,
         )
 
     if greenCenterReady and blueCenterReady:
-        processedImage = cv.line(processedImage, greenCenter, blueCenter, BGR_WHITE, 5)
+        # draw line between green and blue points
+        processedImage = cv.line(
+            processedImage,
+            (greenCenter.x, greenCenter.y),
+            (blueCenter.x, blueCenter.y),
+            BGR_WHITE,
+            5,
+        )
 
     if blueCenterReady and redCenterReady:
-        processedImage = cv.line(processedImage, blueCenter, redCenter, BGR_WHITE, 5)
+        # draw line between blue and red points
+        processedImage = cv.line(
+            processedImage,
+            (blueCenter.x, blueCenter.y),
+            (redCenter.x, redCenter.y),
+            BGR_WHITE,
+            5,
+        )
 
     if greenCenterReady and blueCenterReady and redCenterReady:
         success = True
@@ -284,9 +304,20 @@ def robot_control_algorithm(greenPositionCm, bluePositionCm, redPositionCm):
     ##########################################
     # Write the robot control algorithm here #
     ##########################################
+    print(
+        "({}, {}), ({}, {}), ({}, {})".format(
+            int(greenPositionCm.x),
+            int(greenPositionCm.y),
+            int(bluePositionCm.x),
+            int(bluePositionCm.y),
+            int(redPositionCm.x),
+            int(redPositionCm.y),
+        )
+    )
 
     # Just for test
     import random
+
     random.seed(time.time())
 
     motorSpeedA = random.uniform(-1, 1)
@@ -295,7 +326,7 @@ def robot_control_algorithm(greenPositionCm, bluePositionCm, redPositionCm):
     return motorSpeedA, motorSpeedB
 
 
-class RobotVision:
+class RobotVisionGUI:
     # GUI main class
     def __init__(
         self,
@@ -321,8 +352,15 @@ class RobotVision:
         self.videoSource = videoSource
         self.videoAspectRatio = videoAspectRatio
         self.imageProcessingManager = ImageProcessingManager(
-            self.videoSource, self.videoAspectRatio, self.imageProcessingInterval, self.tkImageHeight
+            self.videoSource,
+            self.videoAspectRatio,
+            self.imageProcessingInterval,
+            self.tkImageHeight,
         )
+        # Joint positions in centimeters
+        self.greenJointPositionCm = Point(0, 0)
+        self.blueJointPositionCm = Point(0, 0)
+        self.redJointPositionCm = Point(0, 0)
 
         self.window = tk.Tk()
         # Title of application window
@@ -640,17 +678,17 @@ class RobotVision:
             self.processedImageBox.configure(image=self.processedTkImage)
 
             (
-                greenPosition,
-                bluePosition,
-                redPosition,
+                self.greenJointPositionCm,
+                self.blueJointPositionCm,
+                self.redJointPositionCm,
             ) = self.imageProcessingManager.get_joint_positions()
 
             greenString = "".join(
                 [
                     "Green Joint: ( ",
-                    str(int(greenPosition[0])),
+                    str(int(self.greenJointPositionCm.x)),
                     " cm , ",
-                    str(int(greenPosition[1])),
+                    str(int(self.greenJointPositionCm.y)),
                     " cm )",
                 ]
             )
@@ -658,18 +696,18 @@ class RobotVision:
             blueString = "".join(
                 [
                     "Blue Joint: ( ",
-                    str(int(bluePosition[0])),
+                    str(int(self.blueJointPositionCm.x)),
                     " cm , ",
-                    str(int(bluePosition[1])),
+                    str(int(self.blueJointPositionCm.y)),
                     " cm )",
                 ]
             )
             redString = "".join(
                 [
                     "Red Joint: ( ",
-                    str(int(redPosition[0])),
+                    str(int(self.redJointPositionCm.x)),
                     " cm , ",
-                    str(int(redPosition[1])),
+                    str(int(self.redJointPositionCm.y)),
                     " cm )",
                 ]
             )
@@ -750,7 +788,13 @@ class SerialPortManager:
 
 
 class ImageProcessingManager:
-    def __init__(self, videoSource, videoAspectRatio=1.0, intervalMilliseconds=40, tkImageHeight=250):
+    def __init__(
+        self,
+        videoSource,
+        videoAspectRatio=1.0,
+        intervalMilliseconds=40,
+        tkImageHeight=250,
+    ):
 
         self.isRunning = False
         self.videoSource = videoSource
@@ -765,9 +809,9 @@ class ImageProcessingManager:
         self.tkImageWidth = int(self.tkImageHeight * self.videoAspectRatio)
 
         # Joint positions in centimeters
-        self.greenJointPositionCm = (0, 0)
-        self.blueJointPositionCm = (0, 0)
-        self.redJointPositionCm = (0, 0)
+        self.greenJointPositionCm = Point(0, 0)
+        self.blueJointPositionCm = Point(0, 0)
+        self.redJointPositionCm = Point(0, 0)
 
         # Motor speeds are float numbers in range (-1, 1)
         # negative speed means reverse direction
@@ -884,25 +928,29 @@ class ImageProcessingManager:
             inputImage
         )
 
+        # greenCenter = self.greenLpf.step(greenCenter)
+        # blueCenter = self.blueLpf.step(greenCenter)
+        # redCenter = self.redLpf.step(greenCenter)
+
         if success:
 
             scalingRatio = (
                 math.sqrt(
-                    math.pow(blueCenter[0] - greenCenter[0], 2)
-                    + math.pow(blueCenter[1] - greenCenter[1], 2)
+                    math.pow(blueCenter.x - greenCenter.x, 2)
+                    + math.pow(blueCenter.y - greenCenter.y, 2)
                 )
                 / GREEN_BLUE_LINK_LENGTH_CM
             )
 
             # Convert units pixel position units into ground truth centimeters
             # the Green point is considered as the origin of our coordinate system
-            blueCmX = (1 / scalingRatio) * (blueCenter[0] - greenCenter[0])
-            blueCmY = -(1 / scalingRatio) * (blueCenter[1] - greenCenter[1])
-            redCmX = (1 / scalingRatio) * (redCenter[0] - greenCenter[0])
-            redCmY = -(1 / scalingRatio) * (redCenter[1] - greenCenter[1])
+            blueCmX = (1 / scalingRatio) * (blueCenter.x - greenCenter.x)
+            blueCmY = -(1 / scalingRatio) * (blueCenter.y - greenCenter.y)
+            redCmX = (1 / scalingRatio) * (redCenter.x - greenCenter.x)
+            redCmY = -(1 / scalingRatio) * (redCenter.y - greenCenter.y)
 
-            self.blueJointPositionCm = (blueCmX, blueCmY)
-            self.redJointPositionCm = (redCmX, redCmY)
+            self.blueJointPositionCm = Point(blueCmX, blueCmY)
+            self.redJointPositionCm = Point(redCmX, redCmY)
 
             # Give joint positions to the Robot Control Algorithm and get the motor speeds
             self.motorSpeedA, self.motorSpeedB = robot_control_algorithm(
@@ -938,9 +986,8 @@ class ImageProcessingManager:
         cmdPacket[2] = map_number(int(speedB * 255), -255, 255, 0, 254)
 
         # Send cmdPacket to serial port
-        if (self.serialPortManager.serialPort.isOpen()):
+        if self.serialPortManager.serialPort.isOpen():
             self.serialPortManager.serialPort.write(bytearray(cmdPacket))
-
 
 
 if __name__ == "__main__":
@@ -958,7 +1005,7 @@ if __name__ == "__main__":
     guiUpdateInterval = 40
 
     # Create the GUI
-    gui = RobotVision(
+    gui = RobotVisionGUI(
         videoSource,
         videoFrameRate,
         desiredAspectRatio,
