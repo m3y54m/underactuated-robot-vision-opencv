@@ -284,7 +284,7 @@ def robot_control_algorithm(greenPositionCm, bluePositionCm, redPositionCm):
     ##########################################
     # Write the robot control algorithm here #
     ##########################################
-    
+
     # Just for test
     import random
     random.seed(time.time())
@@ -315,12 +315,13 @@ class RobotVision:
         self.find_available_serial_ports()
         # GUI update interval for images and other dynamic widgets
         self.guiUpdateInterval = guiUpdateInterval
+        self.tkImageHeight = 250
         # Image processing interval might be less than GUI update interval
         self.imageProcessingInterval = 1000 // videoFrameRate
         self.videoSource = videoSource
         self.videoAspectRatio = videoAspectRatio
         self.imageProcessingManager = ImageProcessingManager(
-            self.videoSource, self.videoAspectRatio, self.imageProcessingInterval
+            self.videoSource, self.videoAspectRatio, self.imageProcessingInterval, self.tkImageHeight
         )
 
         self.window = tk.Tk()
@@ -461,14 +462,14 @@ class RobotVision:
         ## Widgets size and position ##
         ###############################
         padding = 10
-        self.imageHeight = 300
-        self.imageWidth = int(self.videoAspectRatio * self.imageHeight)
+        image_height = self.tkImageHeight
+        image_width = int(self.videoAspectRatio * image_height)
         control_width = 300
-        button_height = 60
+        button_height = 40
         label_height = 30
-        menu_height = 40
-        window_width = self.imageWidth * 2 + control_width + 4 * padding
-        window_height = self.imageHeight + 2 * padding
+        menu_height = 30
+        window_width = image_width * 2 + control_width + 4 * padding
+        window_height = image_height + 2 * padding
 
         # Size of application window
         self.window.geometry("{}x{}".format(window_width, window_height))
@@ -478,56 +479,56 @@ class RobotVision:
         self.topFrame.place(x=0, y=0, width=window_width, height=window_height)
 
         self.originalImageBox.place(
-            x=padding, y=padding, width=self.imageWidth, height=self.imageHeight
+            x=padding, y=padding, width=image_width, height=image_height
         )
 
         self.originalTitle.place(x=padding, y=padding)
 
         self.processedImageBox.place(
-            x=(self.imageWidth + 2 * padding),
+            x=(image_width + 2 * padding),
             y=padding,
-            width=self.imageWidth,
-            height=self.imageHeight,
+            width=image_width,
+            height=image_height,
         )
 
         self.processedTitle.place(
-            x=(self.imageWidth + 2 * padding),
+            x=(image_width + 2 * padding),
             y=padding,
         )
 
         self.scanButton.place(
-            x=(self.imageWidth * 2 + 3 * padding),
+            x=(image_width * 2 + 3 * padding),
             y=padding,
             width=control_width,
             height=button_height,
         )
         self.portsOptionMenu.place(
-            x=(self.imageWidth * 2 + 3 * padding),
+            x=(image_width * 2 + 3 * padding),
             y=(button_height + 2 * padding),
             width=control_width,
             height=menu_height,
         )
 
         self.startButton.place(
-            x=(self.imageWidth * 2 + 3 * padding),
+            x=(image_width * 2 + 3 * padding),
             y=(button_height + menu_height + 3 * padding),
             width=control_width,
             height=button_height,
         )
         self.greenJointLabel.place(
-            x=(self.imageWidth * 2 + 3 * padding),
+            x=(image_width * 2 + 3 * padding),
             y=(2 * button_height + menu_height + 4 * padding),
             width=control_width,
             height=label_height,
         )
         self.blueJointLabel.place(
-            x=self.imageWidth * 2 + 3 * padding,
+            x=image_width * 2 + 3 * padding,
             y=(2 * button_height + menu_height + label_height + 5 * padding),
             width=control_width,
             height=label_height,
         )
         self.redJointLabel.place(
-            x=self.imageWidth * 2 + 3 * padding,
+            x=image_width * 2 + 3 * padding,
             y=(2 * button_height + menu_height + 2 * label_height + 6 * padding),
             width=control_width,
             height=label_height,
@@ -749,7 +750,7 @@ class SerialPortManager:
 
 
 class ImageProcessingManager:
-    def __init__(self, videoSource, videoAspectRatio=1.0, intervalMilliseconds=40):
+    def __init__(self, videoSource, videoAspectRatio=1.0, intervalMilliseconds=40, tkImageHeight=250):
 
         self.isRunning = False
         self.videoSource = videoSource
@@ -760,7 +761,7 @@ class ImageProcessingManager:
         self.processedFrame = None
         self.originalTkImage = None
         self.processedTkImage = None
-        self.tkImageHeight = 300
+        self.tkImageHeight = tkImageHeight
         self.tkImageWidth = int(self.tkImageHeight * self.videoAspectRatio)
 
         # Joint positions in centimeters
