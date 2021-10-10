@@ -281,13 +281,16 @@ def map_number(x, in_min, in_max, out_min, out_max):
 
 def robot_control_algorithm(greenPositionCm, bluePositionCm, redPositionCm):
 
-    # Just for test
-    motorSpeedA = 0.8
-    motorSpeedB = -0.3
-
     ##########################################
     # Write the robot control algorithm here #
     ##########################################
+    
+    # Just for test
+    import random
+    random.seed(time.time())
+
+    motorSpeedA = random.uniform(-1, 1)
+    motorSpeedB = random.uniform(-1, 1)
 
     return motorSpeedA, motorSpeedB
 
