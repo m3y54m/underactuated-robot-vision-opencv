@@ -4,17 +4,13 @@ This repository contains all the source code related to the computer-vision part
 
 ![Our underactuated robot manipulator](images/underactuated-robot-manipulator.jpg)
 
-This is a screenshot of the GUI of the latest version in Linux, written in Python using [Tkinter](https://docs.python.org/3/library/tkinter.html) and [OpenCV](https://opencv.org/):
+This is a demo of the application written in Python using [Tkinter](https://docs.python.org/3/library/tkinter.html) and [OpenCV](https://opencv.org/):
 
-![](images/new-program-ui.png)
+![](images/new-program-demo.gif)
 
 ## Old Versions
 
 The v1, v2, and v3 versions of this project were written in Visual Studio using C# and [EmguCV](https://www.emgu.com/) and were hosted locally on my PC. I decided to put them in a GitHub repository in order to share it with other developers.
-
-This is a screenshot of the GUI of old vision-based control app in Windows, written in Visual Studio.
-
-![](images/old-program-screenshot-working.jpg)
 
 ## Current Development
 
