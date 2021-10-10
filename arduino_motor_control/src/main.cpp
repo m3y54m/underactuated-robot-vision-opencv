@@ -97,18 +97,25 @@ void setup()
 
   motorA(0);
   motorB(0);
-  Serial.println("Start");
+
+  Serial.println("[ ARDUINO ] It all started :))");
 }
 
 void loop()
 {
   if (packetReceived)
   {
-    Serial.println("OK");
+    Serial.print("[ ARDUINO ] cmdSpeedA = ");
+    Serial.print(cmdSpeedA);
+    Serial.print(" , cmdSpeedB = ");
+    Serial.println(cmdSpeedB);
+
     cmdSpeedA = map(cmdSpeedA, 0, 254, -255, 255); // cmdSpeedA is mapped between -255 ~ 255
     cmdSpeedB = map(cmdSpeedB, 0, 254, -255, 255); // cmdSpeedB is mapped between -255 ~ 255
+
     motorA(cmdSpeedA);
     motorB(cmdSpeedB);
+
     packetReceived = false;
   }
 }

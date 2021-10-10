@@ -281,8 +281,9 @@ def map_number(x, in_min, in_max, out_min, out_max):
 
 def robot_control_algorithm(greenPositionCm, bluePositionCm, redPositionCm):
 
-    motorSpeedA = 0
-    motorSpeedB = 0
+    # Just for test
+    motorSpeedA = 0.8
+    motorSpeedB = -0.3
 
     ##########################################
     # Write the robot control algorithm here #
@@ -900,14 +901,14 @@ class ImageProcessingManager:
             self.redJointPositionCm = (redCmX, redCmY)
 
             # Give joint positions to the Robot Control Algorithm and get the motor speeds
-            self.motorSpeedA, self.motorSpeedA = robot_control_algorithm(
+            self.motorSpeedA, self.motorSpeedB = robot_control_algorithm(
                 self.greenJointPositionCm,
                 self.blueJointPositionCm,
                 self.redJointPositionCm,
             )
 
             # Send speed of motors to Arduino board
-            self.send_motor_speeds(self.motorSpeedA, self.motorSpeedA)
+            self.send_motor_speeds(self.motorSpeedA, self.motorSpeedB)
 
         return isOutputColored, outputImage
 
