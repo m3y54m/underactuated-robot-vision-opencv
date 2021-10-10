@@ -915,9 +915,6 @@ class ImageProcessingManager:
                     else:
                         continue
 
-        if self.videoCapture.isOpened():
-            self.videoCapture.release()
-            
     # Release the video source when the object is destroyed
     def __del__(self):
         self.serialPortManager.stop()
@@ -931,10 +928,6 @@ class ImageProcessingManager:
         success, greenCenter, blueCenter, redCenter, outputImage = find_join_positions(
             inputImage
         )
-
-        # greenCenter = self.greenLpf.step(greenCenter)
-        # blueCenter = self.blueLpf.step(greenCenter)
-        # redCenter = self.redLpf.step(greenCenter)
 
         if success:
 
