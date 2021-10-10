@@ -28,7 +28,7 @@ SRC_PATH = pathlib.Path(__file__).parent.resolve()
 ICON_PATH = SRC_PATH.joinpath("icon.png")
 VDO_PATH = str(SRC_PATH.parent.resolve().joinpath("assets/sample_video.mp4"))
 
-HUE_TOLERANCE = 10
+HUE_TOLERANCE = 20
 SATURATION_TOLERANCE = 120
 VALUE_TOLERANCE = 120
 
@@ -330,6 +330,7 @@ class RobotVisionGUI:
     # GUI main class
     def __init__(
         self,
+        window,
         videoSource,
         videoFrameRate=25,
         videoAspectRatio=1.0,
@@ -362,7 +363,7 @@ class RobotVisionGUI:
         self.blueJointPositionCm = Point(0, 0)
         self.redJointPositionCm = Point(0, 0)
 
-        self.window = tk.Tk()
+        self.window = window
         # Title of application window
         self.window.title("Robot Vision Application")
         # Icon of application window
@@ -747,30 +748,33 @@ class SerialPortManager:
 
     def stop(self):
         self.isRunning = False
+        if self.serialPort.isOpen():
+            self.serialPort.close()
 
     def thread_handler(self):
 
         while self.isRunning:
 
             if not self.serialPort.isOpen():
-
+                # Open the serial port
                 self.serialPort = serial.Serial(
                     port=self.serialPortName,
                     baudrate=self.serialPortBaud,
                     bytesize=8,
-                    timeout=2,
+                    parity=serial.PARITY_NONE,
                     stopbits=serial.STOPBITS_ONE,
                 )
             else:
-                # Wait until there is data waiting in the serial buffer
-                while self.serialPort.in_waiting > 0:
-                    # Read only one byte from serial port
-                    serialPortByte = self.serialPort.read(1)
-                    # Process incoming bytes
-                    self.on_byte_received(serialPortByte)
-
-        if self.serialPort.isOpen():
-            self.serialPort.close()
+                try:
+                    # Wait until there is data waiting in the serial buffer
+                    while self.serialPort.in_waiting > 0:
+                        # Read only one byte from serial port
+                        serialPortByte = self.serialPort.read(1)
+                        # Process incoming bytes
+                        self.on_byte_received(serialPortByte)
+                except:
+                    # ignore errors!
+                    pass
 
     def __del__(self):
         if self.serialPort.isOpen():
@@ -913,7 +917,7 @@ class ImageProcessingManager:
 
         if self.videoCapture.isOpened():
             self.videoCapture.release()
-
+            
     # Release the video source when the object is destroyed
     def __del__(self):
         self.serialPortManager.stop()
@@ -986,7 +990,10 @@ class ImageProcessingManager:
         cmdPacket[2] = map_number(int(speedB * 255), -255, 255, 0, 254)
 
         # Send cmdPacket to serial port
-        if self.serialPortManager.serialPort.isOpen():
+        if (
+            self.serialPortManager.serialPort.isOpen()
+            and self.serialPortManager.isRunning
+        ):
             self.serialPortManager.serialPort.write(bytearray(cmdPacket))
 
 
@@ -1004,8 +1011,13 @@ if __name__ == "__main__":
     serialPortBaud = 57600
     guiUpdateInterval = 40
 
+    # Create master Tkinter window
+    # Tk() must be created here globally to avoid some errors
+    window = tk.Tk()
+
     # Create the GUI
     gui = RobotVisionGUI(
+        window,
         videoSource,
         videoFrameRate,
         desiredAspectRatio,
