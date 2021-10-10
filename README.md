@@ -53,3 +53,7 @@ pip install -r "./desktop_vision_app/requirements.txt"
 - [Python OpenCV – Find center of contour](https://www.geeksforgeeks.org/python-opencv-find-center-of-contour/)
 - [Drawing shapes](https://opencv-tutorial.readthedocs.io/en/latest/draw/draw.html)
 - [Cropping an Image using OpenCV](https://learnopencv.com/cropping-an-image-using-opencv/)
+
+### Misc
+
+-[What is the Python equivalent of static variables inside a function?](https://stackoverflow.com/questions/279561/what-is-the-python-equivalent-of-static-variables-inside-a-function)
