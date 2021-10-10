@@ -306,7 +306,7 @@ def set_motor_speed(speedA, speedB):
 
 class RobotVision:
     # GUI main class
-    def __init__(self, videoSource, videoFrameRate=25, guiUpdateInterval=40):
+    def __init__(self, videoSource, videoFrameRate=25, videoAspectRatio=1.0, guiUpdateInterval=40):
 
         self.portNamesList = []
         self.isAnyPortAvailable = False
@@ -321,8 +321,9 @@ class RobotVision:
         # Image processing interval might be less than GUI update interval
         self.imageProcessingInterval = 1000 // videoFrameRate
         self.videoSource = videoSource
+        self.videoAspectRatio = videoAspectRatio
         self.imageProcessingManager = ImageProcessingManager(
-            self.videoSource, self.imageProcessingInterval
+            self.videoSource, self.videoAspectRatio, self.imageProcessingInterval
         )
 
         self.window = tk.Tk()
@@ -457,14 +458,14 @@ class RobotVision:
             anchor="nw",
         )
 
-        self.recursive_update_images()
+        self.update_gui_loop()
 
         ###############################
         ## Widgets size and position ##
         ###############################
         padding = 10
-        self.imageWidth = 400
         self.imageHeight = 300
+        self.imageWidth = int(self.videoAspectRatio * self.imageHeight)
         control_width = 300
         button_height = 60
         label_height = 30
@@ -560,7 +561,7 @@ class RobotVision:
             self.imageProcessingManager.set_interval(self.imageProcessingInterval)
             self.imageProcessingManager.start()
             # Start updating image boxes in GUI
-            self.recursive_update_images()
+            self.update_gui_loop()
 
         else:
             self.isStarted = False
@@ -627,7 +628,7 @@ class RobotVision:
         # Set default value of selectedPort
         self.selectedPort.set(portNames[0])
 
-    def recursive_update_images(self):
+    def update_gui_loop(self):
         # Update images in a kind of recursive function using Tkinter after() method
         # Get PIL ImageTk types from ImageProcessingManager for displaying in GUI
         (
@@ -650,9 +651,9 @@ class RobotVision:
             greenString = "".join(
                 [
                     "Green Joint: ( ",
-                    str(round(greenPosition[0], 0)),
+                    str(int(greenPosition[0])),
                     " cm , ",
-                    str(round(greenPosition[1], 0)),
+                    str(int(greenPosition[1])),
                     " cm )",
                 ]
             )
@@ -660,18 +661,18 @@ class RobotVision:
             blueString = "".join(
                 [
                     "Blue Joint: ( ",
-                    str(round(bluePosition[0], 0)),
+                    str(int(bluePosition[0])),
                     " cm , ",
-                    str(round(bluePosition[1], 0)),
+                    str(int(bluePosition[1])),
                     " cm )",
                 ]
             )
             redString = "".join(
                 [
                     "Red Joint: ( ",
-                    str(round(redPosition[0], 0)),
+                    str(int(redPosition[0])),
                     " cm , ",
-                    str(round(redPosition[1], 0)),
+                    str(int(redPosition[1])),
                     " cm )",
                 ]
             )
@@ -680,9 +681,9 @@ class RobotVision:
             self.blueJointLabel.configure(text=blueString)
             self.redJointLabel.configure(text=redString)
 
-        # Recursively call recursive_update_images using Tkinter after() method
+        # Recursively call update_gui_loop using Tkinter after() method
         if self.imageProcessingManager.isRunning:
-            self.window.after(self.guiUpdateInterval, self.recursive_update_images)
+            self.window.after(self.guiUpdateInterval, self.update_gui_loop)
 
     def close_window(self):
         if self.isStarted:
@@ -753,17 +754,18 @@ class SerialPortManager:
 
 
 class ImageProcessingManager:
-    def __init__(self, videoSource, intervalMilliseconds=40):
+    def __init__(self, videoSource, videoAspectRatio=1.0,intervalMilliseconds=40):
         self.isRunning = False
         self.videoSource = videoSource
+        self.videoAspectRatio = videoAspectRatio
         self.intervalMilliseconds = intervalMilliseconds
         self.success = False
         self.originalFrame = None
         self.processedFrame = None
         self.originalTkImage = None
         self.processedTkImage = None
-        self.tkImageWidth = 400
         self.tkImageHeight = 300
+        self.tkImageWidth = int(self.tkImageHeight * self.videoAspectRatio)
 
         self.greenJointPositionCm = (0, 0)
         self.blueJointPositionCm = (0, 0)
@@ -812,20 +814,19 @@ class ImageProcessingManager:
     def thread_handler(self):
 
         while self.isRunning:
+            # Do processing on captured frame in certain intervals
+            if time_ms() % self.intervalMilliseconds == 0:
 
-            if not self.videoCapture.isOpened():
-                self.videoCapture = cv.VideoCapture(self.videoSource)
-            else:
-                # Do processing on captured frame in certain intervals
-                if time_ms() % self.intervalMilliseconds == 0:
-
+                if not self.videoCapture.isOpened():
+                    self.videoCapture = cv.VideoCapture(self.videoSource)
+                else:
                     self.success, self.originalFrame = self.videoCapture.read()
 
                     if self.success:
-
+                        
                         # Correct aspect ratio of frame
-                        self.originalFrame = crop_image(self.originalFrame, 1.33)
-
+                        self.originalFrame = crop_image(self.originalFrame, self.videoAspectRatio)
+                        
                         # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
                         self.originalTkImage = self.convert_cv_frame_to_tk_image(
                             self.originalFrame, True
@@ -900,7 +901,8 @@ if __name__ == "__main__":
 
     videoSource = dict_video_source["video"]
     videoFrameRate = 25
+    desiredAspectRatio = 1.2
     guiUpdateInterval = 40
 
     # Create the GUI
-    gui = RobotVision(videoSource, videoFrameRate, guiUpdateInterval)
+    gui = RobotVision(videoSource,videoFrameRate, desiredAspectRatio, guiUpdateInterval)
