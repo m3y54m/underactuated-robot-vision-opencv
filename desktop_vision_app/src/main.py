@@ -279,31 +279,6 @@ def map_number(x, in_min, in_max, out_min, out_max):
     return int((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
 
 
-def set_motor_speed(speedA, speedB):
-    # speeds must be normalized between -1.0 and 1.0
-    if speedA > 1.0:
-        speedA = 1.0
-
-    if speedA < -1.0:
-        speedA = -1.0
-
-    if speedB > 1.0:
-        speedB = 1.0
-
-    if speedB < -1.0:
-        speedB = -1.0
-
-    intSpeedA = int(speedA * 255)
-    intSpeedB = int(speedB * 255)
-
-    # Create a custom 3-byte packet for Arduino board
-    cmdPacket = [0xFF, 0, 0]
-    cmdPacket[1] = map_number(intSpeedA, -255, 255, 0, 254)
-    cmdPacket[2] = map_number(intSpeedB, -255, 255, 0, 254)
-
-    return cmdPacket
-
-
 def robot_control_algorithm(greenPositionCm, bluePositionCm, redPositionCm):
 
     motorSpeedA = 0
@@ -731,7 +706,7 @@ class SerialPortManager:
         self.isRunning = False
 
     def thread_handler(self):
-        
+
         while self.isRunning:
 
             if not self.serialPort.isOpen():
@@ -749,7 +724,7 @@ class SerialPortManager:
                     # Read only one byte from serial port
                     serialPortByte = self.serialPort.read(1)
                     # Process incoming bytes
-                    self.serial_byte_processing(serialPortByte)
+                    self.on_byte_received(serialPortByte)
 
         if self.serialPort.isOpen():
             self.serialPort.close()
@@ -758,7 +733,7 @@ class SerialPortManager:
         if self.serialPort.isOpen():
             self.serialPort.close()
 
-    def serial_byte_processing(self, inputByte):
+    def on_byte_received(self, inputByte):
         # Print the received byte in Python terminal
         try:
             character = inputByte.decode("ascii")
@@ -873,12 +848,12 @@ class ImageProcessingManager:
                         )
 
                         ##################################
-                        #  Main Frame Processing Routine #
+                        #  Main Image Processing Routine #
                         ##################################
                         (
                             isOutputColored,
                             self.processedFrame,
-                        ) = self.video_frame_processing(self.originalFrame)
+                        ) = self.main_image_processing(self.originalFrame)
 
                         # Convert CV image to PIL ImageTk in order to display in Tkinter GUI
                         self.processedTkImage = self.convert_cv_frame_to_tk_image(
@@ -896,7 +871,7 @@ class ImageProcessingManager:
         if self.videoCapture.isOpened():
             self.videoCapture.release()
 
-    def video_frame_processing(self, inputImage):
+    def main_image_processing(self, inputImage):
         # Set this to 'True' if the output image will be colored ELSE 'False'
         isOutputColored = True
 
@@ -914,16 +889,15 @@ class ImageProcessingManager:
                 / GREEN_BLUE_LINK_LENGTH_CM
             )
 
-            blueJoinPositionCmX = (1 / scalingRatio) * (blueCenter[0] - greenCenter[0])
-            blueJoinPositionCmY = -(1 / scalingRatio) * (blueCenter[1] - greenCenter[1])
+            # Convert units pixel position units into ground truth centimeters
+            # the Green point is considered as the origin of our coordinate system
+            blueCmX = (1 / scalingRatio) * (blueCenter[0] - greenCenter[0])
+            blueCmY = -(1 / scalingRatio) * (blueCenter[1] - greenCenter[1])
+            redCmX = (1 / scalingRatio) * (redCenter[0] - greenCenter[0])
+            redCmY = -(1 / scalingRatio) * (redCenter[1] - greenCenter[1])
 
-            redJoinPositionCmX = (1 / scalingRatio) * (redCenter[0] - greenCenter[0])
-            redJoinPositionCmY = -(1 / scalingRatio) * (redCenter[1] - greenCenter[1])
-
-            self.blueJointPositionCm, self.redJointPositionCm = (
-                blueJoinPositionCmX,
-                blueJoinPositionCmY,
-            ), (redJoinPositionCmX, redJoinPositionCmY)
+            self.blueJointPositionCm = (blueCmX, blueCmY)
+            self.redJointPositionCm = (redCmX, redCmY)
 
             # Give joint positions to the Robot Control Algorithm and get the motor speeds
             self.motorSpeedA, self.motorSpeedA = robot_control_algorithm(
@@ -932,7 +906,36 @@ class ImageProcessingManager:
                 self.redJointPositionCm,
             )
 
+            # Send speed of motors to Arduino board
+            self.send_motor_speeds(self.motorSpeedA, self.motorSpeedA)
+
         return isOutputColored, outputImage
+
+    def send_motor_speeds(self, speedA, speedB):
+        # speeds must be normalized and saturated between -1.0 and 1.0
+        if speedA > 1.0:
+            speedA = 1.0
+
+        if speedA < -1.0:
+            speedA = -1.0
+
+        if speedB > 1.0:
+            speedB = 1.0
+
+        if speedB < -1.0:
+            speedB = -1.0
+
+        # Create a 3-byte packet which is defined in Arduino code
+        cmdPacket = [0xFF, 0, 0]
+        # 0xFF or 255 is reserved for start of packet byte
+        # so the speed bytes value range is (0, 254)
+        cmdPacket[1] = map_number(int(speedA * 255), -255, 255, 0, 254)
+        cmdPacket[2] = map_number(int(speedB * 255), -255, 255, 0, 254)
+
+        # Send cmdPacket to serial port
+        if (self.serialPortManager.serialPort.isOpen()):
+            self.serialPortManager.serialPort.write(bytearray(cmdPacket))
+
 
 
 if __name__ == "__main__":
@@ -946,7 +949,7 @@ if __name__ == "__main__":
     videoSource = dict_video_source["video"]
     videoFrameRate = 25
     desiredAspectRatio = 1.2
-    serialPortBaud = 921600
+    serialPortBaud = 57600
     guiUpdateInterval = 40
 
     # Create the GUI
