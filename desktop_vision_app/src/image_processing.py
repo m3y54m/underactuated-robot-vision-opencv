@@ -4,7 +4,6 @@ import cv2 as cv
 # Multi-threading
 import threading
 
-# for time.Sleep()
 # for scheduling functions using time.time()
 import time
 
@@ -84,7 +83,7 @@ class ImageProcessingManager:
         self.motorSpeedB = 0
 
         self.serialPortName = None
-        self.serialPortBaud = 921600
+        self.serialPortBaud = 9600
         self.serialPortManager = SerialPortManager(self.serialPortBaud)
 
         # Open the video source
@@ -123,8 +122,6 @@ class ImageProcessingManager:
     def stop(self):
         self.isRunning = False
         self.serialPortManager.stop()
-        if self.videoCapture.isOpened():
-            self.videoCapture.release()
 
     def image_thread_handler(self):
 

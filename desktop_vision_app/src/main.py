@@ -8,7 +8,7 @@ import pathlib
 from robot_vision_gui import RobotVisionGUI
 
 SRC_PATH = pathlib.Path(__file__).parent.resolve()
-ICON_PATH = SRC_PATH.joinpath("icon.png")
+ICON_PATH = SRC_PATH.parent.resolve().joinpath("assets/icon.png")
 VDO_PATH = str(SRC_PATH.parent.resolve().joinpath("assets/sample_video.mp4"))
 
 
