@@ -4,9 +4,15 @@ This repository contains all the source code related to the computer-vision part
 
 ![Our underactuated robot manipulator](images/underactuated-robot-manipulator.jpg)
 
-This is a demo of the application written in Python using [Tkinter](https://docs.python.org/3/library/tkinter.html) and [OpenCV](https://opencv.org/):
+This application is written in Python using [Tkinter](https://docs.python.org/3/library/tkinter.html) and [OpenCV](https://opencv.org/).
+
+This is a demo of the application running in Linux:
 
 ![](images/new-program-demo.gif)
+
+This application and its GUI can run in all desktop OSes with no extra work needed. This is a screenshot of it running in Windows 10:
+
+![](images/new-program-windows.png)
 
 ## Old Versions
 
